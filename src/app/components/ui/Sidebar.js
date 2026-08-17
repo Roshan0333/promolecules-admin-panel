@@ -29,33 +29,33 @@ import {
 } from "lucide-react";
 
 const ecommerceSubItems = [
-  { label: "Report", href: "/admin/ecommerce/report" },
+  // { label: "Report", href: "/admin/ecommerce/report" },
   { label: "Orders", href: "/admin/ecommerce/orders" },
   { label: "Incomplete Orders", href: "/admin/ecommerce/incomplete-orders" },
-  { label: "Order Returns", href: "/admin/ecommerce/order-returns" },
-  { label: "Shipments", href: "/admin/ecommerce/shipments" },
-  { label: "Invoices", href: "/admin/ecommerce/invoices" },
+  // { label: "Order Returns", href: "/admin/ecommerce/order-returns" },
+  // { label: "Shipments", href: "/admin/ecommerce/shipments" },
+  // { label: "Invoices", href: "/admin/ecommerce/invoices" },
   { label: "Products", href: "/admin/ecommerce/products" },
-  { label: "Product Prices", href: "/admin/ecommerce/product-prices" },
-  { label: "Product Inventory", href: "/admin/ecommerce/product-inventory" },
-  {
-    label: "Product Categories",
-    href: "/admin/ecommerce/product-categories",
-  },
-  { label: "Product Tags", href: "/admin/ecommerce/product-tags" },
-  {
-    label: "Product Attributes",
-    href: "/admin/ecommerce/product-attributes",
-  },
-  { label: "Product Options", href: "/admin/ecommerce/product-options" },
-  {
-    label: "Product Collections",
-    href: "/admin/ecommerce/product-collections",
-  },
-  { label: "Product Labels", href: "/admin/ecommerce/product-labels" },
-  { label: "Brands", href: "/admin/ecommerce/brands" },
-  { label: "Reviews", href: "/admin/ecommerce/reviews" },
-  { label: "Flash Sales", href: "/admin/ecommerce/flash-sales" },
+  // { label: "Product Prices", href: "/admin/ecommerce/product-prices" },
+  // { label: "Product Inventory", href: "/admin/ecommerce/product-inventory" },
+  // {
+  //   label: "Product Categories",
+  //   href: "/admin/ecommerce/product-categories",
+  // },
+  // { label: "Product Tags", href: "/admin/ecommerce/product-tags" },
+  // {
+  //   label: "Product Attributes",
+  //   href: "/admin/ecommerce/product-attributes",
+  // },
+  // { label: "Product Options", href: "/admin/ecommerce/product-options" },
+  // {
+  //   label: "Product Collections",
+  //   href: "/admin/ecommerce/product-collections",
+  // },
+  // { label: "Product Labels", href: "/admin/ecommerce/product-labels" },
+  // { label: "Brands", href: "/admin/ecommerce/brands" },
+  // { label: "Reviews", href: "/admin/ecommerce/reviews" },
+  // { label: "Flash Sales", href: "/admin/ecommerce/flash-sales" },
   { label: "Coupons", href: "/admin/ecommerce/coupons" },
   { label: "Customers", href: "/admin/ecommerce/customers" },
 ];
