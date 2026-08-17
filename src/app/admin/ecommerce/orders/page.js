@@ -15,6 +15,11 @@ export default function OrdersPage() {
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+
   function Token() {
     return sessionStorage.getItem("pm_admin_token");
   }
@@ -22,8 +27,10 @@ export default function OrdersPage() {
   useEffect(() => {
     async function fetchOrders() {
       try {
+        setLoading(true);
+
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_BASE_URL}/api/orders/dashboard/all`,
+          `${process.env.NEXT_PUBLIC_BASE_URL}/api/orders/dashboard/all?page=${page}&limit=${limit}`,
           {
             method: "GET",
             headers: {
@@ -34,23 +41,29 @@ export default function OrdersPage() {
         );
 
         if (!res.ok) {
-          throw new Error(
-            `Failed to fetch orders: ${res.status}`
-          );
+          throw new Error(`Failed to fetch orders: ${res.status}`);
         }
 
         const data = await res.json();
 
         setOrders(data.orders || []);
+
+        setTotalPages(data.totalPages || 1);
+        setTotalOrders(data.totalOrders || 0);
+
+        if (data.page) {
+          setPage(data.page);
+        }
       } catch (err) {
         console.error("Failed to fetch orders:", err);
+        setOrders([]);
       } finally {
         setLoading(false);
       }
     }
 
     fetchOrders();
-  }, []);
+  }, [page, limit]);
 
   function handleEditClick(order) {
     setEditingOrder(order);
@@ -85,9 +98,25 @@ export default function OrdersPage() {
     return paymentMatches && statusMatches;
   });
 
+  function handlePageChange(newPage) {
+    if (newPage < 1 || newPage > totalPages) return;
+
+    setPage(newPage);
+  }
+
+  function getPageNumbers() {
+    const pages = [];
+
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+
+    return pages;
+  }
+
   return (
     <div className="w-full space-y-4 sm:space-y-5">
-      {/* Header */}
+
       <div>
         <h1 className="text-xl font-semibold sm:text-2xl">
           Orders
@@ -98,11 +127,9 @@ export default function OrdersPage() {
         </p>
       </div>
 
-      {/* Filters */}
       <div className="rounded-lg border bg-white p-3 sm:p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          
-          {/* Payment */}
+
           <div className="flex w-full items-center gap-2 sm:w-auto">
             <label
               htmlFor="payment-filter"
@@ -114,9 +141,10 @@ export default function OrdersPage() {
             <select
               id="payment-filter"
               value={paymentFilter}
-              onChange={(e) =>
-                setPaymentFilter(e.target.value)
-              }
+              onChange={(e) => {
+                setPaymentFilter(e.target.value);
+                setPage(1);
+              }}
               className="h-9 min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-500 sm:w-[130px] sm:flex-none"
             >
               <option value="all">All</option>
@@ -126,7 +154,6 @@ export default function OrdersPage() {
             </select>
           </div>
 
-          {/* Status */}
           <div className="flex w-full items-center gap-2 sm:w-auto">
             <label
               htmlFor="status-filter"
@@ -138,9 +165,10 @@ export default function OrdersPage() {
             <select
               id="status-filter"
               value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value)
-              }
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
               className="h-9 min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-500 sm:w-[150px] sm:flex-none"
             >
               <option value="all">All</option>
@@ -153,7 +181,6 @@ export default function OrdersPage() {
             </select>
           </div>
 
-          {/* Clear */}
           {(paymentFilter !== "all" ||
             statusFilter !== "all") && (
             <button
@@ -161,6 +188,7 @@ export default function OrdersPage() {
               onClick={() => {
                 setPaymentFilter("all");
                 setStatusFilter("all");
+                setPage(1);
               }}
               className="self-start text-sm text-slate-500 hover:text-slate-900 sm:self-auto"
             >
@@ -168,33 +196,86 @@ export default function OrdersPage() {
             </button>
           )}
 
-          {/* Count */}
           <div className="text-xs text-slate-400 sm:ml-auto sm:text-sm">
             Showing {filteredOrders.length} of{" "}
-            {orders.length} orders
+            {totalOrders} orders
           </div>
         </div>
       </div>
 
-      {/* Orders */}
       {loading ? (
         <TableSkeleton
           rows={8}
           columns={7}
         />
       ) : (
-        <div className="w-full overflow-hidden rounded-lg border bg-white">
-          <div className="w-full overflow-x-auto">
-            <OrderTable
-              orders={filteredOrders}
-              onEdit={handleEditClick}
-              onDelete={handleDelete}
-            />
+        <>
+          <div className="w-full overflow-hidden rounded-lg border bg-white">
+            <div className="w-full overflow-x-auto">
+              <OrderTable
+                orders={filteredOrders}
+                onEdit={handleEditClick}
+                onDelete={handleDelete}
+              />
+            </div>
           </div>
-        </div>
+
+          {totalPages > 1 && (
+            <div className="flex flex-col gap-3 rounded-lg border bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+
+              <div className="text-sm text-slate-500">
+                Page {page} of {totalPages}
+              </div>
+
+              <div className="flex items-center gap-1">
+
+                <button
+                  type="button"
+                  disabled={page === 1}
+                  onClick={() => handlePageChange(page - 1)}
+                  className="rounded-md border px-3 py-2 text-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Previous
+                </button>
+
+                <div className="hidden items-center gap-1 sm:flex">
+                  {getPageNumbers().map((pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      type="button"
+                      onClick={() =>
+                        handlePageChange(pageNumber)
+                      }
+                      className={`h-9 min-w-9 rounded-md border px-3 text-sm ${
+                        page === pageNumber
+                          ? "bg-slate-900 text-white"
+                          : "bg-white text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                </div>
+
+                <span className="px-2 text-sm text-slate-600 sm:hidden">
+                  {page}
+                </span>
+
+                <button
+                  type="button"
+                  disabled={page === totalPages}
+                  onClick={() => handlePageChange(page + 1)}
+                  className="rounded-md border px-3 py-2 text-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next
+                </button>
+
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Edit Dialog */}
       <OrderEditForm
         open={formOpen}
         onOpenChange={setFormOpen}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import OrderTable from "@/app/components/ui/OrderTable";
 import OrderEditForm from "@/app/components/ui/OrderEditForm";
 import TableSkeleton from "@/app/components/ui/TableSkeleton";
@@ -13,15 +13,15 @@ export default function OrdersPage() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Edit order
     const [formOpen, setFormOpen] = useState(false);
     const [editingOrder, setEditingOrder] = useState(null);
 
-    // View order details
     const [detailOpen, setDetailOpen] = useState(false);
     const [viewingOrder, setViewingOrder] = useState(null);
 
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalOrders, setTotalOrders] = useState(0);
 
     function Token() {
         return sessionStorage.getItem("pm_admin_token");
@@ -30,8 +30,10 @@ export default function OrdersPage() {
     useEffect(() => {
         async function fetchOrders() {
             try {
+                setLoading(true);
+
                 const res = await fetch(
-                    `${process.env.NEXT_PUBLIC_BASE_URL}/api/orders/dashboard/all`,
+                    `${process.env.NEXT_PUBLIC_BASE_URL}/api/orders/dashboard/all?page=${currentPage}&limit=${PAGE_SIZE}`,
                     {
                         method: "GET",
                         headers: {
@@ -49,37 +51,52 @@ export default function OrdersPage() {
 
                 const data = await res.json();
 
+                console.log("Orders API Response:", data);
+
                 setOrders(data.orders || []);
+
+                setTotalPages(
+                    data.totalPages ||
+                    Math.ceil(
+                        (data.totalOrders || data.total || 0) /
+                            PAGE_SIZE
+                    ) ||
+                    1
+                );
+
+                setTotalOrders(
+                    data.totalOrders ||
+                    data.total ||
+                    data.count ||
+                    0
+                );
             } catch (err) {
                 console.error("Failed to fetch orders:", err);
+                setOrders([]);
             } finally {
                 setLoading(false);
             }
         }
 
         fetchOrders();
-    }, []);
+    }, [currentPage]);
 
-    // Edit order
     function handleEditClick(order) {
         setEditingOrder(order);
         setFormOpen(true);
     }
 
-    // View order details
     function handleOrderClick(order) {
         setViewingOrder(order);
         setDetailOpen(true);
     }
 
-    // Delete order
     function handleDelete(id) {
         setOrders((prev) =>
             prev.filter((order) => order.id !== id)
         );
     }
 
-    // Save edited order
     function handleSave(updatedOrder) {
         setOrders((prev) =>
             prev.map((order) =>
@@ -90,40 +107,61 @@ export default function OrdersPage() {
         );
     }
 
-    // Only pending orders
     const filteredOrders = orders.filter((order) => {
         return order.status?.toLowerCase() === "pending";
     });
-
-    // Reset page when orders change
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [orders.length]);
-
-    const totalPages = Math.max(
-        1,
-        Math.ceil(filteredOrders.length / PAGE_SIZE)
-    );
-
-    const safePage = Math.min(
-        currentPage,
-        totalPages
-    );
-
-    const paginatedOrders = useMemo(() => {
-        const start = (safePage - 1) * PAGE_SIZE;
-
-        return filteredOrders.slice(
-            start,
-            start + PAGE_SIZE
-        );
-    }, [filteredOrders, safePage]);
 
     function goToPage(page) {
         if (page < 1 || page > totalPages) return;
 
         setCurrentPage(page);
     }
+
+    function getPaginationPages() {
+        const pages = [];
+
+        for (let page = 1; page <= totalPages; page++) {
+            if (
+                page === 1 ||
+                page === totalPages ||
+                Math.abs(page - currentPage) <= 1
+            ) {
+                pages.push(page);
+            }
+        }
+
+        const result = [];
+
+        pages.forEach((page, index) => {
+            if (
+                index > 0 &&
+                page - pages[index - 1] > 1
+            ) {
+                result.push(
+                    `ellipsis-${page}`
+                );
+            }
+
+            result.push(page);
+        });
+
+        return result;
+    }
+
+    const paginationPages = getPaginationPages();
+
+    const startItem =
+        totalOrders === 0
+            ? 0
+            : (currentPage - 1) * PAGE_SIZE + 1;
+
+    const endItem =
+        totalOrders === 0
+            ? 0
+            : Math.min(
+                  currentPage * PAGE_SIZE,
+                  totalOrders
+              );
 
     return (
         <div className="w-full space-y-4 sm:space-y-5">
@@ -141,20 +179,11 @@ export default function OrdersPage() {
                 </div>
 
                 <div className="text-xs text-slate-400 sm:ml-auto sm:text-sm">
-                    Showing{" "}
-                    {filteredOrders.length === 0
-                        ? 0
-                        : (safePage - 1) * PAGE_SIZE + 1}
-                    –
-                    {Math.min(
-                        safePage * PAGE_SIZE,
-                        filteredOrders.length
-                    )}{" "}
-                    of {filteredOrders.length} orders
+                    Showing {startItem}–{endItem} of{" "}
+                    {totalOrders} orders
                 </div>
             </div>
 
-            {/* Orders */}
             {loading ? (
                 <TableSkeleton
                     rows={8}
@@ -164,27 +193,27 @@ export default function OrdersPage() {
                 <div className="w-full overflow-hidden rounded-lg border bg-white">
 
                     <div className="w-full overflow-x-auto">
-
                         <OrderTable
-                            orders={paginatedOrders}
+                            orders={filteredOrders}
                             onEdit={handleEditClick}
                             onDelete={handleDelete}
                             onOrderClick={handleOrderClick}
                         />
-
                     </div>
 
-                    {/* Pagination */}
-                    {filteredOrders.length > 0 && (
+                    {totalPages > 1 && (
                         <div className="flex items-center justify-between border-t px-4 py-3 sm:px-6">
 
                             <button
                                 onClick={() =>
                                     goToPage(
-                                        safePage - 1
+                                        currentPage - 1
                                     )
                                 }
-                                disabled={safePage === 1}
+                                disabled={
+                                    currentPage === 1 ||
+                                    loading
+                                }
                                 className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50 hover:bg-slate-50"
                             >
                                 <ChevronLeft className="h-4 w-4" />
@@ -193,53 +222,10 @@ export default function OrdersPage() {
 
                             <div className="flex items-center gap-1">
 
-                                {Array.from(
-                                    {
-                                        length: totalPages,
-                                    },
-                                    (_, i) => i + 1
-                                )
-                                    .filter((page) => {
-                                        return (
-                                            page === 1 ||
-                                            page === totalPages ||
-                                            Math.abs(
-                                                page -
-                                                safePage
-                                            ) <= 1
-                                        );
-                                    })
-                                    .reduce(
-                                        (
-                                            acc,
-                                            page,
-                                            idx,
-                                            arr
-                                        ) => {
-                                            if (
-                                                idx > 0 &&
-                                                page -
-                                                arr[
-                                                idx -
-                                                1
-                                                ] >
-                                                1
-                                            ) {
-                                                acc.push(
-                                                    "ellipsis-" +
-                                                    page
-                                                );
-                                            }
-
-                                            acc.push(page);
-
-                                            return acc;
-                                        },
-                                        []
-                                    )
-                                    .map((page) =>
+                                {paginationPages.map(
+                                    (page) =>
                                         typeof page ===
-                                            "string" ? (
+                                        "string" ? (
                                             <span
                                                 key={page}
                                                 className="px-2 text-sm text-slate-400"
@@ -254,28 +240,31 @@ export default function OrdersPage() {
                                                         page
                                                     )
                                                 }
-                                                className={`h-8 w-8 rounded-md text-sm ${page ===
-                                                        safePage
+                                                disabled={loading}
+                                                className={`h-8 w-8 rounded-md text-sm ${
+                                                    page ===
+                                                    currentPage
                                                         ? "bg-slate-900 text-white"
                                                         : "hover:bg-slate-50"
-                                                    }`}
+                                                }`}
                                             >
                                                 {page}
                                             </button>
                                         )
-                                    )}
+                                )}
 
                             </div>
 
                             <button
                                 onClick={() =>
                                     goToPage(
-                                        safePage + 1
+                                        currentPage + 1
                                     )
                                 }
                                 disabled={
-                                    safePage ===
-                                    totalPages
+                                    currentPage ===
+                                        totalPages ||
+                                    loading
                                 }
                                 className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50 hover:bg-slate-50"
                             >
@@ -288,7 +277,6 @@ export default function OrdersPage() {
                 </div>
             )}
 
-            {/* Edit Modal */}
             <OrderEditForm
                 open={formOpen}
                 onOpenChange={setFormOpen}
@@ -296,7 +284,6 @@ export default function OrdersPage() {
                 onSave={handleSave}
             />
 
-            {/* Order Details Modal */}
             <OrderDetailModal
                 open={detailOpen}
                 onOpenChange={setDetailOpen}
