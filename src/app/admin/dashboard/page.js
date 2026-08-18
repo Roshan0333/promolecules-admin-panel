@@ -22,6 +22,7 @@ export default function DashboardPage() {
   const [period, setPeriod] = useState("year");
 
   const [dashboardData, setDashboardData] = useState(null);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,7 +44,6 @@ export default function DashboardPage() {
           }
         );
 
-
         setDashboardData(dashboard.data);
       } catch (err) {
         console.error("Failed to fetch dashboard:", err);
@@ -54,6 +54,30 @@ export default function DashboardPage() {
 
     fetchDashboard();
   }, []);
+
+  useEffect(() => {
+    ; (
+      async () => {
+        try {
+          const token = sessionStorage.getItem("pm_admin_token");
+          const response = await axios.get(
+            `${process.env.NEXT_PUBLIC_BASE_URL}/api/products/top-selling`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+              }
+            }
+          );
+
+          setProducts(response.data.topSellingProducts);
+        }
+        catch (err) {
+          console.error("Error:", err.message)
+        }
+      }
+    )()
+  }, [])
 
   if (loading) {
     return (
@@ -81,9 +105,6 @@ export default function DashboardPage() {
       value: stats?.totalProducts || 0,
       formattedValue: String(stats?.totalProducts || 0),
       icon: "package",
-      trend: "up",
-      delta: 0,
-      deltaLabel: "0",
       sparkline: []
     },
 
@@ -93,9 +114,6 @@ export default function DashboardPage() {
       value: stats?.totalOrders || 0,
       formattedValue: String(stats?.totalOrders || 0),
       icon: "shopping-cart",
-      trend: "up",
-      delta: 0,
-      deltaLabel: "0",
       sparkline: []
     },
 
@@ -105,9 +123,6 @@ export default function DashboardPage() {
       value: stats?.totalUsers || 0,
       formattedValue: String(stats?.totalUsers || 0),
       icon: "users",
-      trend: "up",
-      delta: 0,
-      deltaLabel: "0",
       sparkline: []
     },
 
@@ -117,9 +132,6 @@ export default function DashboardPage() {
       value: stats?.pendingOrders || 0,
       formattedValue: String(stats?.pendingOrders || 0),
       icon: "clock",
-      trend: "up",
-      delta: 0,
-      deltaLabel: "0",
       sparkline: []
     },
 
@@ -131,9 +143,6 @@ export default function DashboardPage() {
         stats?.totalPaymentReceived || 0
       ).toFixed(2)}`,
       icon: "credit-card",
-      trend: "up",
-      delta: 0,
-      deltaLabel: "0",
       sparkline: []
     },
 
@@ -143,9 +152,6 @@ export default function DashboardPage() {
       value: stats?.lowStockVariants || 0,
       formattedValue: String(stats?.lowStockVariants || 0),
       icon: "alert-triangle",
-      // trend: "down",
-      // delta: 0,
-      // deltaLabel: "0",
       sparkline: []
     },
   ];
@@ -169,7 +175,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <StockReport items={dashboardData.recentOrders} />
 
-        <TopProducts products={topProductsData} />
+        <TopProducts products={products} />
       </div>
     </div>
   );

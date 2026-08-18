@@ -19,6 +19,9 @@ export default function OrdersPage() {
     const [detailOpen, setDetailOpen] = useState(false);
     const [viewingOrder, setViewingOrder] = useState(null);
 
+    const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalOrders, setTotalOrders] = useState(0);
@@ -28,20 +31,48 @@ export default function OrdersPage() {
     }
 
     useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search.trim());
+            setCurrentPage(1);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    useEffect(() => {
         async function fetchOrders() {
             try {
                 setLoading(true);
 
-                const res = await fetch(
-                    `${process.env.NEXT_PUBLIC_BASE_URL}/api/orders/dashboard/all?page=${currentPage}&limit=${PAGE_SIZE}`,
-                    {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${Token()}`,
-                        },
-                    }
-                );
+                const baseUrl =
+                    process.env.NEXT_PUBLIC_BASE_URL;
+
+                let url;
+
+                if (debouncedSearch) {
+                    const params = new URLSearchParams({
+                        q: debouncedSearch,
+                        page: currentPage.toString(),
+                        limit: PAGE_SIZE.toString(),
+                    });
+
+                    url = `${baseUrl}/api/orders/dashboard/search?${params.toString()}`;
+                } else {
+                    const params = new URLSearchParams({
+                        page: currentPage.toString(),
+                        limit: PAGE_SIZE.toString(),
+                    });
+
+                    url = `${baseUrl}/api/orders/dashboard/all?${params.toString()}`;
+                }
+
+                const res = await fetch(url, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${Token()}`,
+                    },
+                });
 
                 if (!res.ok) {
                     throw new Error(
@@ -55,31 +86,35 @@ export default function OrdersPage() {
 
                 setOrders(data.orders || []);
 
-                setTotalPages(
-                    data.totalPages ||
-                    Math.ceil(
-                        (data.totalOrders || data.total || 0) /
-                            PAGE_SIZE
-                    ) ||
-                    1
-                );
-
-                setTotalOrders(
+                const total =
                     data.totalOrders ||
                     data.total ||
                     data.count ||
-                    0
+                    0;
+
+                setTotalOrders(total);
+
+                setTotalPages(
+                    data.totalPages ||
+                    Math.ceil(total / PAGE_SIZE) ||
+                    1
                 );
             } catch (err) {
-                console.error("Failed to fetch orders:", err);
+                console.error(
+                    "Failed to fetch orders:",
+                    err
+                );
+
                 setOrders([]);
+                setTotalPages(1);
+                setTotalOrders(0);
             } finally {
                 setLoading(false);
             }
         }
 
         fetchOrders();
-    }, [currentPage]);
+    }, [currentPage, debouncedSearch]);
 
     function handleEditClick(order) {
         setEditingOrder(order);
@@ -108,7 +143,9 @@ export default function OrdersPage() {
     }
 
     const filteredOrders = orders.filter((order) => {
-        return order.status?.toLowerCase() === "pending";
+        return (
+            order.status?.toLowerCase() === "pending"
+        );
     });
 
     function goToPage(page) {
@@ -137,9 +174,7 @@ export default function OrdersPage() {
                 index > 0 &&
                 page - pages[index - 1] > 1
             ) {
-                result.push(
-                    `ellipsis-${page}`
-                );
+                result.push(`ellipsis-${page}`);
             }
 
             result.push(page);
@@ -165,9 +200,7 @@ export default function OrdersPage() {
 
     return (
         <div className="w-full space-y-4 sm:space-y-5">
-
-            {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-xl font-semibold sm:text-2xl">
                         In-Complete Orders
@@ -178,10 +211,36 @@ export default function OrdersPage() {
                     </p>
                 </div>
 
-                <div className="text-xs text-slate-400 sm:ml-auto sm:text-sm">
+                <div className="text-xs text-slate-400 sm:text-sm">
                     Showing {startItem}–{endItem} of{" "}
                     {totalOrders} orders
                 </div>
+            </div>
+
+            <div className="relative w-full">
+                <input
+                    type="text"
+                    value={search}
+                    onChange={(e) =>
+                        setSearch(e.target.value)
+                    }
+                    placeholder="Search orders..."
+                    className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 pr-10 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                />
+
+                {search && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setSearch("");
+                            setDebouncedSearch("");
+                            setCurrentPage(1);
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 hover:text-slate-700"
+                    >
+                        ✕
+                    </button>
+                )}
             </div>
 
             {loading ? (
@@ -191,7 +250,6 @@ export default function OrdersPage() {
                 />
             ) : (
                 <div className="w-full overflow-hidden rounded-lg border bg-white">
-
                     <div className="w-full overflow-x-auto">
                         <OrderTable
                             orders={filteredOrders}
@@ -201,9 +259,14 @@ export default function OrdersPage() {
                         />
                     </div>
 
+                    {filteredOrders.length === 0 && (
+                        <div className="flex items-center justify-center py-10 text-sm text-slate-500">
+                            No incomplete orders found.
+                        </div>
+                    )}
+
                     {totalPages > 1 && (
                         <div className="flex items-center justify-between border-t px-4 py-3 sm:px-6">
-
                             <button
                                 onClick={() =>
                                     goToPage(
@@ -221,7 +284,6 @@ export default function OrdersPage() {
                             </button>
 
                             <div className="flex items-center gap-1">
-
                                 {paginationPages.map(
                                     (page) =>
                                         typeof page ===
@@ -252,7 +314,6 @@ export default function OrdersPage() {
                                             </button>
                                         )
                                 )}
-
                             </div>
 
                             <button
@@ -271,7 +332,6 @@ export default function OrdersPage() {
                                 Next
                                 <ChevronRight className="h-4 w-4" />
                             </button>
-
                         </div>
                     )}
                 </div>
@@ -289,7 +349,6 @@ export default function OrdersPage() {
                 onOpenChange={setDetailOpen}
                 order={viewingOrder}
             />
-
         </div>
     );
 }

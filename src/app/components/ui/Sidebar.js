@@ -25,17 +25,22 @@ import {
   Settings,
   ShieldCheck,
   ChevronDown,
+  Box,
   X,
+  Package,
+  User,
+  Ticket,
+  ChartNoAxesCombined
 } from "lucide-react";
 
-const ecommerceSubItems = [
+// const ecommerceSubItems = [
   // { label: "Report", href: "/admin/ecommerce/report" },
-  { label: "Orders", href: "/admin/ecommerce/orders" },
-  { label: "Incomplete Orders", href: "/admin/ecommerce/incomplete-orders" },
+  // { label: "Orders", href: "/admin/ecommerce/orders" },
+  // { label: "Incomplete Orders", href: "/admin/ecommerce/incomplete-orders" },
   // { label: "Order Returns", href: "/admin/ecommerce/order-returns" },
   // { label: "Shipments", href: "/admin/ecommerce/shipments" },
   // { label: "Invoices", href: "/admin/ecommerce/invoices" },
-  { label: "Products", href: "/admin/ecommerce/products" },
+  // { label: "Products", href: "/admin/ecommerce/products" },
   // { label: "Product Prices", href: "/admin/ecommerce/product-prices" },
   // { label: "Product Inventory", href: "/admin/ecommerce/product-inventory" },
   // {
@@ -56,9 +61,9 @@ const ecommerceSubItems = [
   // { label: "Brands", href: "/admin/ecommerce/brands" },
   // { label: "Reviews", href: "/admin/ecommerce/reviews" },
   // { label: "Flash Sales", href: "/admin/ecommerce/flash-sales" },
-  { label: "Coupons", href: "/admin/ecommerce/coupons" },
-  { label: "Customers", href: "/admin/ecommerce/customers" },
-];
+//   { label: "Coupons", href: "/admin/ecommerce/coupons" },
+//   { label: "Customers", href: "/admin/ecommerce/customers" },
+// ];
 
 const navItems = [
   {
@@ -66,10 +71,38 @@ const navItems = [
     href: "/admin/dashboard",
     icon: LayoutDashboard,
   },
+  // {
+  //   label: "Ecommerce",
+  //   icon: ShoppingCart,
+  //   children: ecommerceSubItems,
+  // },
+  { label: "Report", 
+    href: "/admin/ecommerce/report",
+    icon: ChartNoAxesCombined
+  },
   {
-    label: "Ecommerce",
-    icon: ShoppingCart,
-    children: ecommerceSubItems,
+    label: "Orders",
+    href: "/admin/ecommerce/orders",
+    icon: Box
+  },
+  {
+    label: "Incomplete Orders",
+    href: "/admin/ecommerce/incomplete-orders",
+    icon: Box
+  },
+  {
+    label: "Products",
+    href: "/admin/ecommerce/products",
+    icon: Package
+  },
+  { label: "Coupons", 
+    href: "/admin/ecommerce/coupons",
+    icon: Ticket
+   },
+  {
+    label: "Customers",
+    href: "/admin/ecommerce/customers",
+    icon: User
   },
   // {
   //   label: "Product Specification",
@@ -234,10 +267,9 @@ export default function Sidebar({ open, onClose }) {
                       flex w-full items-center justify-between
                       gap-3 px-5 py-2.5 text-sm
                       transition-colors
-                      ${
-                        isChildActive
-                          ? "bg-blue-600 text-white"
-                          : "hover:bg-slate-800 hover:text-white"
+                      ${isChildActive
+                        ? "bg-blue-600 text-white"
+                        : "hover:bg-slate-800 hover:text-white"
                       }
                     `}
                   >
@@ -248,9 +280,8 @@ export default function Sidebar({ open, onClose }) {
 
                     <ChevronDown
                       size={16}
-                      className={`transition-transform ${
-                        isOpen ? "rotate-180" : ""
-                      }`}
+                      className={`transition-transform ${isOpen ? "rotate-180" : ""
+                        }`}
                     />
                   </button>
 
@@ -267,10 +298,9 @@ export default function Sidebar({ open, onClose }) {
                             className={`
                               block py-2 pl-12 pr-5 text-sm
                               transition-colors
-                              ${
-                                isActive
-                                  ? "font-medium text-blue-400"
-                                  : "text-slate-400 hover:text-white"
+                              ${isActive
+                                ? "font-medium text-blue-400"
+                                : "text-slate-400 hover:text-white"
                               }
                             `}
                           >
@@ -298,10 +328,9 @@ export default function Sidebar({ open, onClose }) {
                   flex items-center gap-3
                   px-5 py-2.5 text-sm
                   transition-colors
-                  ${
-                    isActive
-                      ? "bg-blue-600 text-white"
-                      : "hover:bg-slate-800 hover:text-white"
+                  ${isActive
+                    ? "bg-blue-600 text-white"
+                    : "hover:bg-slate-800 hover:text-white"
                   }
                 `}
               >
