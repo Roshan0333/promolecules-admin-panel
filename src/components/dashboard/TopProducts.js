@@ -15,7 +15,6 @@ const initials = (name) =>
     .toUpperCase();
 
 export default function TopProducts({ products }) {
-  console.log(products)
   return (
     <Card className="border-border/60">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">

@@ -10,8 +10,6 @@ import DeleteConfirmDialog from "@/app/components/ui/DeleteConfirmDialog";
 import TableSkeleton from "@/app/components/ui/TableSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const API_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/dashboard/users`;
-
 function getToken() {
   return sessionStorage.getItem("pm_admin_token");
 }
@@ -29,10 +27,20 @@ export default function CustomersPage() {
   const [customerToDelete, setCustomerToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+
   useEffect(() => {
     async function fetchCustomers() {
       try {
-        const res = await fetch(API_URL, {
+        setLoading(true);
+        setError(null);
+
+        const url = `${BASE_URL}/api/dashboard/users?page=${page}&limit=20`;
+
+        const res = await fetch(url, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -41,12 +49,17 @@ export default function CustomersPage() {
         });
 
         if (!res.ok) {
-          throw new Error(`Request failed with status ${res.status}`);
+          throw new Error(
+            `Request failed with status ${res.status}`
+          );
         }
 
         const data = await res.json();
 
         setCustomers(data.users || []);
+
+        setPage(data.page || 1);
+        setTotalPages(data.totalPages || 1);
       } catch (err) {
         console.error("Failed to fetch customers:", err);
         setError(err.message);
@@ -56,7 +69,7 @@ export default function CustomersPage() {
     }
 
     fetchCustomers();
-  }, []);
+  }, [page, BASE_URL]);
 
   function handleEditClick(customer) {
     setSelectedCustomer(customer);
@@ -79,16 +92,16 @@ export default function CustomersPage() {
     setDeleting(true);
 
     try {
-      const res = await fetch(
-        `${API_URL}/${customerToDelete.id}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${getToken()}`,
-          },
-        }
-      );
+      // ?page=1&limit=20
+      const url = `${BASE_URL}/api/dashboard/users/${customerToDelete.id}`;
+
+      const res = await fetch(url, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
@@ -100,13 +113,19 @@ export default function CustomersPage() {
       }
 
       setCustomers((prev) =>
-        prev.filter((c) => c.id !== customerToDelete.id)
+        prev.filter(
+          (customer) => customer.id !== customerToDelete.id
+        )
       );
 
       toast.success("Customer deleted successfully!");
 
       setDeleteDialogOpen(false);
       setCustomerToDelete(null);
+
+      if (customers.length === 1 && page > 1) {
+        setPage((prev) => prev - 1);
+      }
     } catch (err) {
       console.error("Delete customer failed:", err);
 
@@ -119,7 +138,7 @@ export default function CustomersPage() {
   }
 
   async function handleSave(customer) {
-    if (!customer.id) return;
+    if (!customer?.id) return;
 
     const { id, status } = customer;
 
@@ -127,19 +146,18 @@ export default function CustomersPage() {
       status === "Activated" || status === true;
 
     try {
-      const res = await fetch(
-        `${API_URL}/${id}/status`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${getToken()}`,
-          },
-          body: JSON.stringify({
-            status: updatedStatus,
-          }),
-        }
-      );
+      const url = `${BASE_URL}/api/dashboard/users/${id}/status`;
+
+      const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          status: updatedStatus,
+        }),
+      });
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
@@ -151,6 +169,7 @@ export default function CustomersPage() {
       }
 
       const data = await res.json();
+
       const updated = data.user || data;
 
       setCustomers((prev) =>
@@ -160,12 +179,36 @@ export default function CustomersPage() {
       );
 
       toast.success("Customer updated successfully!");
+
+      setFormOpen(false);
     } catch (err) {
       console.error("Update customer failed:", err);
 
       toast.error(
         `Failed to update customer: ${err.message}`
       );
+    }
+  }
+
+  function handlePreviousPage() {
+    if (page > 1) {
+      setPage((prev) => prev - 1);
+    }
+  }
+
+  function handleNextPage() {
+    if (page < totalPages) {
+      setPage((prev) => prev + 1);
+    }
+  }
+
+  function handlePageChange(pageNumber) {
+    if (
+      pageNumber >= 1 &&
+      pageNumber <= totalPages &&
+      pageNumber !== page
+    ) {
+      setPage(pageNumber);
     }
   }
 
@@ -194,7 +237,6 @@ export default function CustomersPage() {
 
   return (
     <div className="w-full space-y-4 sm:space-y-5">
-      {/* Page Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold sm:text-2xl">
@@ -207,7 +249,6 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* Customer Table */}
       <div className="w-full overflow-hidden rounded-lg border bg-white">
         <div className="w-full overflow-x-auto">
           <CustomerTable
@@ -219,7 +260,54 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* Edit Customer */}
+      {totalPages > 1 && (
+        <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+          <p className="text-sm text-muted-foreground">
+            Page {page} of {totalPages}
+          </p>
+
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handlePreviousPage}
+              disabled={page === 1}
+              className="rounded-md border px-3 py-2 text-sm font-medium transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Previous
+            </button>
+
+            {Array.from(
+              { length: totalPages },
+              (_, index) => index + 1
+            ).map((pageNumber) => (
+              <button
+                key={pageNumber}
+                type="button"
+                onClick={() =>
+                  handlePageChange(pageNumber)
+                }
+                className={`min-w-9 rounded-md border px-3 py-2 text-sm font-medium transition ${
+                  page === pageNumber
+                    ? "bg-black text-white"
+                    : "hover:bg-gray-100"
+                }`}
+              >
+                {pageNumber}
+              </button>
+            ))}
+
+            <button
+              type="button"
+              onClick={handleNextPage}
+              disabled={page === totalPages}
+              className="rounded-md border px-3 py-2 text-sm font-medium transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
       <CustomerForm
         open={formOpen}
         onOpenChange={setFormOpen}
@@ -227,14 +315,12 @@ export default function CustomersPage() {
         onSave={handleSave}
       />
 
-      {/* View Customer */}
       <CustomerViewDialog
         open={viewOpen}
         onOpenChange={setViewOpen}
         customer={selectedCustomer}
       />
 
-      {/* Delete Confirmation */}
       <DeleteConfirmDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}

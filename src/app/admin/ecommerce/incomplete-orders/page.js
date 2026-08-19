@@ -7,7 +7,7 @@ import TableSkeleton from "@/app/components/ui/TableSkeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import OrderDetailModal from "../OrderDetailModal/page";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 export default function OrdersPage() {
     const [orders, setOrders] = useState([]);
@@ -81,8 +81,6 @@ export default function OrdersPage() {
                 }
 
                 const data = await res.json();
-
-                console.log("Orders API Response:", data);
 
                 setOrders(data.orders || []);
 

@@ -48,8 +48,6 @@ export default function CouponsPage() {
 
         const data = await res.json();
 
-        console.log("Fetched coupons:", data);
-
         setCoupons(data.coupons || []);
       } catch (err) {
         console.error("Failed to fetch coupons:", err);
@@ -83,10 +81,6 @@ export default function CouponsPage() {
     setDeleting(true);
 
     try {
-      console.log(
-        "Attempting to delete coupon with ID:",
-        couponToDelete.id
-      );
 
       const res = await fetch(
         changeAPIUrl + couponToDelete.id,

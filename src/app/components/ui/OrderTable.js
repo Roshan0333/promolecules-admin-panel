@@ -19,6 +19,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
+import { Download } from "lucide-react"
+
 import { Input } from "@/components/ui/input";
 
 import {
@@ -49,38 +51,34 @@ import {
 import axios from "axios";
 import { useState } from "react";
 
-/* -------------------------------------------------------
-   PAYMENT COLORS
-------------------------------------------------------- */
-
 const paymentColors = {
-  paid: "bg-green-100 text-green-700 border-green-200",
+  paid: "bg-green-100 border-green-200 text-black-700 p-4 text-[15px] font-bold",
   pending:
-    "bg-yellow-100 text-yellow-700 border-yellow-200",
-  failed: "bg-red-100 text-red-700 border-red-200",
+    "bg-yellow-100 border-yellow-200 text-black-700 p-4 text-[15px] font-bold",
+  failed: "bg-red-100 border-red-200 text-black-700 p-4 text-[15px] font-bold",
 };
 
 const statusColors = {
   pending:
-    "bg-yellow-100 text-yellow-700 border-yellow-200",
+    "bg-yellow-100 border-yellow-200 text-black-700 p-4 text-[15px] font-bold",
 
   confirmed:
-    "bg-green-100 text-green-700 border-green-200",
+    "bg-green-100 border-green-200 text-black-700 p-4 text-[15px] font-bold",
 
-  processing:
-    "bg-blue-100 text-blue-700 border-blue-200",
+  placed:
+    "bg-green-100 border-green-200 text-black-700 p-4 text-[15px] font-bold",
 
-  shipped:
-    "bg-purple-100 text-purple-700 border-purple-200",
+  ready_to_ship:
+    "bg-blue-100 border-blue-200 text-black-700 p-4 text-[15px] font-bold",
 
-  dispatched:
-    "bg-purple-100 text-purple-700 border-purple-200",
+  on_the_way:
+    "bg-purple-100 border-purple-200 text-black-700 p-4 text-[15px] font-bold",
 
   delivered:
-    "bg-green-100 text-green-700 border-green-200",
+    "bg-green-100 border-green-200 text-black-700 p-4 text-[15px] font-bold",
 
   cancelled:
-    "bg-red-100 text-red-700 border-red-200",
+    "bg-red-100 border-red-200 text-black-700 p-4 text-[15px] font-bold",
 };
 
 function formatDate(date) {
@@ -122,44 +120,33 @@ export default function OrderTable({
   onOrderClick,
 }) {
 
+
   const [serviceMode, setServiceMode] =
     useState(false);
 
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [paymentMode, setPaymentMode] =
-    useState("");
-  const [shipmentType, setShipmentType] =
-    useState("");
+  const [paymentMode, setPaymentMode] = useState("");
+  const [shipmentType, setShipmentType] = useState("");
 
-  const [deliveryPathner, setDeliveryPathner] =
-    useState([]);
+  const [deliveryPathner, setDeliveryPathner] = useState([]);
 
-  const [deliveryStatus, setDeliveyStatus] =
-    useState(false);
+  const [deliveryStatus, setDeliveyStatus] = useState(false);
 
-  const [selectedDeliveryPartner, setSelectedDeliveryPartner] =
-    useState(null);
-
-  /* -----------------------------------------------------
-     SELECTED ORDER
-  ----------------------------------------------------- */
-
-  const [selectedOrder, setSelectedOrder] =
-    useState(null);
-
-  const [shipmentDetailsOpen, setShipmentDetailsOpen] =
-    useState(false);
-
-  const [shipmentDetails, setShipmentDetails] =
-    useState(null);
+  const [selectedDeliveryPartner, setSelectedDeliveryPartner] = useState(null);
 
 
-  const [loading, setLoading] =
-    useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
-  const [partnerLoading, setPartnerLoading] =
-    useState(false);
+  const [shipmentDetailsOpen, setShipmentDetailsOpen] = useState(false);
+
+  const [shipmentDetails, setShipmentDetails] = useState(null);
+
+
+  const [loading, setLoading] = useState(false);
+
+  const [partnerLoading, setPartnerLoading] = useState(false);
+
+  const [from, setFrom] = useState("201309");
+  const [to, setTo] = useState(selectedOrder?.shippingPincode || "");
 
 
   const resetShipmentData = () => {
@@ -178,7 +165,7 @@ export default function OrderTable({
     setSelectedDeliveryPartner(null);
 
     setSelectedOrder(null);
-     window.location.reload();
+    window.location.reload();
   };
 
 
@@ -202,7 +189,7 @@ export default function OrderTable({
     e.stopPropagation();
 
     if (
-      order.status === "pending" ||
+      order.displayStage === "pending" ||
       order.shipmentStatus === "cancelled"
     ) {
       return;
@@ -243,6 +230,7 @@ export default function OrderTable({
           );
 
         const url = `${baseUrl}/api/velocity/serviceability`;
+
 
         const response =
           await axios.post(
@@ -402,21 +390,6 @@ export default function OrderTable({
         const expectedDeliveryDate =
           selectedDeliveryPartner.expected_delivery_date;
 
-        console.log(
-          "Carrier ID:",
-          carrierId
-        );
-
-        console.log(
-          "Carrier Name:",
-          carrierName
-        );
-
-        console.log(
-          "Expected Delivery:",
-          expectedDeliveryDate
-        );
-
         const url = `${baseUrl}/api/velocity/shipment/${selectedOrder.id}`;
 
         const response =
@@ -435,7 +408,7 @@ export default function OrderTable({
 
         if (response.data.success) {
           resetShipmentData();
-        
+
         }
       } catch (err) {
         console.error(
@@ -448,15 +421,8 @@ export default function OrderTable({
       }
     };
 
-  /* =====================================================
-     RENDER
-  ===================================================== */
-
   return (
     <>
-      {/* =================================================
-          ORDER TABLE
-      ================================================= */}
 
       <Table className="min-w-[1400px]">
         <TableHeader>
@@ -536,10 +502,6 @@ export default function OrderTable({
                 </div>
               </TableCell>
 
-              {/* ---------------------------------------
-                  CUSTOMER
-              ---------------------------------------- */}
-
               <TableCell>
                 <div className="max-w-[200px] truncate text-sm font-medium">
                   {o.user?.name ||
@@ -556,10 +518,6 @@ export default function OrderTable({
                     "-"}
                 </div>
               </TableCell>
-
-              {/* ---------------------------------------
-                  ITEMS
-              ---------------------------------------- */}
 
               <TableCell>
                 <div className="text-sm font-medium">
@@ -585,10 +543,6 @@ export default function OrderTable({
                   </div>
                 )}
               </TableCell>
-
-              {/* ---------------------------------------
-                  SHIPPING ADDRESS
-              ---------------------------------------- */}
 
               <TableCell>
                 <div className="max-w-[320px] text-sm">
@@ -655,10 +609,6 @@ export default function OrderTable({
                 </div>
               </TableCell>
 
-              {/* ---------------------------------------
-                  AMOUNT
-              ---------------------------------------- */}
-
               <TableCell>
                 <div className="text-sm font-medium">
                   {formatAmount(
@@ -678,10 +628,6 @@ export default function OrderTable({
                   )}
               </TableCell>
 
-              {/* ---------------------------------------
-                  PAYMENT
-              ---------------------------------------- */}
-
               <TableCell>
                 <Badge
                   variant="outline"
@@ -692,7 +638,7 @@ export default function OrderTable({
                     "bg-slate-100 text-slate-700"
                   }
                 >
-                  {o.paymentStatus ||
+                  {(o.paymentStatus).toUpperCase() ||
                     "-"}
                 </Badge>
 
@@ -702,27 +648,23 @@ export default function OrderTable({
                 </div>
               </TableCell>
 
-              {/* ---------------------------------------
-                  STATUS
-              ---------------------------------------- */}
-
               <TableCell>
                 <Badge
                   variant="outline"
                   className={
                     statusColors[
-                    o.status
+                    o.displayStage
                     ] ||
-                    "bg-slate-100 text-slate-700"
+                    "bg-slate-100 text-slate-700 py-5"
                   }
                 >
-                  {o.status || "-"}
+                  {(o.displayStage).toUpperCase() || "-"}
                 </Badge>
               </TableCell>
 
 
               <TableCell>
-                {o.status === "pending" ? (
+                {o.displayStage === "pending" ? (
                   <Badge
                     variant="outline"
                     className="cursor-default border-slate-200 bg-slate-100 text-slate-500"
@@ -732,8 +674,11 @@ export default function OrderTable({
                 ) : o.shipmentStatus === "not_shipped" ? (
                   <Badge
                     variant="outline"
-                    onClick={(e) => handleShipmentClick(e, o)}
-                    className="cursor-pointer border-green-300 bg-green-100 text-green-700 hover:bg-green-200"
+                    onClick={(e) => {
+                      handleShipmentClick(e, o);
+                      setTo(o.shippingPincode)
+                    }}
+                    className="cursor-pointer border-green-300 bg-green-100 text-black-700 p-4 text-[15px] font-bold hover:bg-green-200"
                   >
                     Ship Now
                   </Badge>
@@ -742,14 +687,14 @@ export default function OrderTable({
                     <Badge
                       variant="outline"
                       onClick={(e) => handleViewShipmentDetails(e, o)}
-                      className="cursor-pointer border-blue-300 bg-blue-100 text-blue-700 hover:bg-blue-200"
+                      className="cursor-pointer border-blue-300 bg-blue-100 hover:bg-blue-200 text-black-700 p-4 text-[15px] font-bold"
                     >
                       View Details
                     </Badge>
 
                     <Badge
                       variant="outline"
-                      className="cursor-default border-slate-300 bg-slate-100 text-slate-500"
+                      className="cursor-default border-slate-300 bg-slate-100 text-black-700 p-4 text-[15px] font-bold"
                     >
                       Cancelled
                     </Badge>
@@ -759,7 +704,7 @@ export default function OrderTable({
                     <Badge
                       variant="outline"
                       onClick={(e) => handleViewShipmentDetails(e, o)}
-                      className="cursor-pointer border-blue-300 bg-blue-100 text-blue-700 hover:bg-blue-200"
+                      className="cursor-pointer border-blue-300 bg-blue-100 text-black-700 p-4 text-[15px] font-bold hover:bg-blue-200"
                     >
                       View Details
                     </Badge>
@@ -770,7 +715,7 @@ export default function OrderTable({
                         e.stopPropagation();
                         handleCancelShipment(o);
                       }}
-                      className="cursor-pointer border-red-300 bg-red-100 text-red-700 hover:bg-red-200"
+                      className="cursor-pointer border-red-300 bg-red-100 text-black-700 p-4 text-[15px] font-bold hover:bg-red-200"
                     >
                       Cancel Ship
                     </Badge>
@@ -820,11 +765,7 @@ export default function OrderTable({
               <Input
                 placeholder="Enter pickup pincode"
                 value={from}
-                onChange={(e) =>
-                  setFrom(
-                    e.target.value
-                  )
-                }
+                disabled={true}
               />
             </div>
 
@@ -837,10 +778,11 @@ export default function OrderTable({
 
               <Input
                 placeholder="Enter delivery pincode"
-                value={to}
+                value={selectedOrder?.shippingPincode}
+                disabled={true}
                 onChange={(e) =>
                   setTo(
-                    e.target.value
+                    selectedOrder?.shippingPincode
                   )
                 }
               />
@@ -920,8 +862,6 @@ export default function OrderTable({
                 type="button"
                 disabled={
                   loading ||
-                  !from ||
-                  !to ||
                   !paymentMode ||
                   !shipmentType
                 }
@@ -1117,9 +1057,6 @@ export default function OrderTable({
 
           {shipmentDetails && (
             <div className="space-y-6 pt-2">
-              {/* -----------------------------------------
-                  SHIPMENT INFORMATION
-              ------------------------------------------ */}
 
               <div className="rounded-xl border bg-slate-50 p-4">
                 <div className="mb-4 flex items-center gap-2">
@@ -1222,33 +1159,30 @@ export default function OrderTable({
 
                 {/* SHIPPING LABEL */}
 
-                {shipmentDetails.labelUrl && (
+                {(shipmentDetails.labelUrl && shipmentDetails.shipmentStatus !== "cancelled") && (
                   <div className="mt-4 border-t pt-4">
                     <Button
                       type="button"
                       variant="outline"
                       className="w-full sm:w-auto"
-                      onClick={() =>
-                        window.open(
-                          shipmentDetails.labelUrl,
-                          "_blank",
-                          "noopener,noreferrer"
-                        )
-                      }
+                      onClick={() => {
+                        const link = document.createElement("a");
+                        link.href = shipmentDetails.labelUrl;
+                        link.download = `shipping-label-${shipmentDetails.trackingNumber || "label"}.pdf`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
                     >
                       <FileText className="mr-2 h-4 w-4" />
 
-                      View Shipping Label
+                      Download Shipping Label
 
-                      <ExternalLink className="ml-2 h-3.5 w-3.5" />
+                      <Download className="ml-2 h-3.5 w-3.5" />
                     </Button>
                   </div>
                 )}
               </div>
-
-              {/* -----------------------------------------
-                  CUSTOMER
-              ------------------------------------------ */}
 
               <div>
                 <div className="mb-4 flex items-center gap-2">
@@ -1324,10 +1258,6 @@ export default function OrderTable({
                   </div>
                 </div>
               </div>
-
-              {/* -----------------------------------------
-                  SHIPPING ADDRESS
-              ------------------------------------------ */}
 
               <div>
                 <div className="mb-4 flex items-center gap-2">
@@ -1412,10 +1342,6 @@ export default function OrderTable({
                   </div>
                 </div>
               </div>
-
-              {/* -----------------------------------------
-                  ORDER ITEMS
-              ------------------------------------------ */}
 
               <div>
                 <div className="mb-4 flex items-center gap-2">
@@ -1565,12 +1491,12 @@ export default function OrderTable({
                         variant="outline"
                         className={`mt-1 ${statusColors[
                           shipmentDetails
-                            .status
+                            .displayStage
                         ] ||
                           "bg-slate-100 text-slate-700"
                           }`}
                       >
-                        {shipmentDetails.status ||
+                        {shipmentDetails.displayStage ||
                           "-"}
                       </Badge>
                     </div>
@@ -1663,9 +1589,6 @@ export default function OrderTable({
                 </div>
               </div>
 
-              {/* -----------------------------------------
-                  RAZORPAY
-              ------------------------------------------ */}
 
               {(shipmentDetails.razorpayOrderId ||
                 shipmentDetails.razorpayPaymentId) && (
@@ -1709,10 +1632,6 @@ export default function OrderTable({
                     </div>
                   </div>
                 )}
-
-              {/* -----------------------------------------
-                  FOOTER
-              ------------------------------------------ */}
 
               <div className="flex justify-end border-t pt-4">
                 <Button

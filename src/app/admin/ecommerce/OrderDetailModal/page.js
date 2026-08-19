@@ -16,8 +16,6 @@ export default function OrderDetailModal({
 }) {
     if (!open || !order) return null;
 
-    console.log(order)
-
     const items =
         order.items ||
         order.products ||

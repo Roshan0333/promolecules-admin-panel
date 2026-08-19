@@ -20,7 +20,7 @@ export default function OrdersPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const [limit] = useState(20);
   const [totalPages, setTotalPages] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
 
@@ -157,7 +157,7 @@ export default function OrdersPage() {
 
     const statusMatches =
       statusFilter === "all" ||
-      order.status?.toLowerCase() === statusFilter;
+      order.displayStage?.toLowerCase() === statusFilter;
 
     return paymentMatches && statusMatches;
   });
@@ -244,9 +244,10 @@ export default function OrdersPage() {
               >
                 <option value="all">All</option>
                 <option value="pending">Pending</option>
+                <option value="placed">Placed</option>
                 <option value="confirmed">Confirmed</option>
-                <option value="processing">Processing</option>
-                <option value="shipped">Shipped</option>
+                <option value="ready_to_ship">Ready To Ship</option>
+                <option value="on_the_way">On the Way</option>
                 <option value="delivered">Delivered</option>
                 <option value="cancelled">Cancelled</option>
               </select>
