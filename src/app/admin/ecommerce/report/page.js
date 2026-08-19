@@ -154,7 +154,7 @@ export default function Report() {
             ) : (
                 report && (
                     <>
-                        <div className="rounded-xl border border-slate-200 bg-blue-8    00 p-6">
+                        <div className="rounded-xl border border-slate-200 bg-blue-800 p-6">
                             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                                 Total revenue
                             </p>
