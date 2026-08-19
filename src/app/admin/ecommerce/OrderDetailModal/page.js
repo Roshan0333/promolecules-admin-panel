@@ -43,6 +43,12 @@ export default function OrderDetailModal({
         0
     );
 
+    const advanceAmount = Number(
+        order.advanceAmount ??
+        order.advanceAmount ??
+        0
+    );
+
     const discount = Number(
         order.discount ??
         order.discountAmount ??
@@ -54,6 +60,8 @@ export default function OrderDetailModal({
         order.total ??
         order.grandTotal ??
         subtotal + shipping - discount;
+
+    const remainingTotal = subtotal-discount-advanceAmount
 
     return (
         <div
@@ -317,8 +325,8 @@ export default function OrderDetailModal({
                                             const price =
                                                 Number(
                                                     item.price ??
-                                                        product.price ??
-                                                        0
+                                                    product.price ??
+                                                    0
                                                 );
 
                                             const productImage =
@@ -381,7 +389,7 @@ export default function OrderDetailModal({
                                                             <p className="mt-1 text-xs text-slate-500">
                                                                 Category:{" "}
                                                                 {typeof category ===
-                                                                "object"
+                                                                    "object"
                                                                     ? category.name
                                                                     : category}
                                                             </p>
@@ -398,11 +406,11 @@ export default function OrderDetailModal({
                                                         )}
 
                                                         {/* Variant */}
-                                                        {item.variant && (
+                                                        {item.flavour && (
                                                             <p className="text-xs text-slate-500">
-                                                                Variant:{" "}
+                                                                Flavour:{" "}
                                                                 {
-                                                                    item.variant
+                                                                    item.flavour
                                                                 }
                                                             </p>
                                                         )}
@@ -474,78 +482,24 @@ export default function OrderDetailModal({
                     </div>
 
 
-                    <div className="ml-auto max-w-sm rounded-lg border p-5">
+                    <div className="w-full flex lg:flex-row flex-col justify-between gap-2">
+                        {(order.paymentStatus === "partial_paid") && <div className="flex-1 max-w-sm rounded-lg border p-5">
 
-                        <h3 className="mb-4 font-semibold">
-                            Order Summary
-                        </h3>
+                            <h3 className="mb-4 font-semibold">
+                                Partial Order Summary
+                            </h3>
 
-                        <div className="space-y-3 text-sm">
+                            <div className="space-y-3 text-sm">
 
-                            <div className="flex justify-between">
-                                <span className="text-slate-500">
-                                    Subtotal
-                                </span>
-
-                                <span>
-                                    ₹
-                                    {Number(
-                                        subtotal
-                                    ).toLocaleString(
-                                        "en-IN",
-                                        {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        }
-                                    )}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-slate-500">
-                                    Shipping
-                                </span>
-
-                                <span>
-                                    ₹
-                                    {shipping.toLocaleString(
-                                        "en-IN",
-                                        {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        }
-                                    )}
-                                </span>
-                            </div>
-
-                            <div className="flex justify-between">
-                                <span className="text-slate-500">
-                                    Discount
-                                </span>
-
-                                <span className="text-green-600">
-                                    - ₹
-                                    {discount.toLocaleString(
-                                        "en-IN",
-                                        {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        }
-                                    )}
-                                </span>
-                            </div>
-
-                            <div className="border-t pt-3">
-
-                                <div className="flex justify-between text-base font-semibold">
-
-                                    <span>
-                                        Total
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">
+                                        Subtotal
                                     </span>
 
                                     <span>
                                         ₹
                                         {Number(
-                                            total
+                                            subtotal
                                         ).toLocaleString(
                                             "en-IN",
                                             {
@@ -554,9 +508,152 @@ export default function OrderDetailModal({
                                             }
                                         )}
                                     </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">
+                                        Advance Amount
+                                    </span>
 
+                                    <span>
+                                        ₹
+                                        {advanceAmount.toLocaleString(
+                                            "en-IN",
+                                            {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            }
+                                        )}
+                                    </span>
                                 </div>
 
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">
+                                        Discount
+                                    </span>
+
+                                    <span className="text-green-600">
+                                        - ₹
+                                        {discount.toLocaleString(
+                                            "en-IN",
+                                            {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            }
+                                        )}
+                                    </span>
+                                </div>
+
+                                <div className="border-t pt-3">
+
+                                    <div className="flex justify-between text-base font-semibold">
+
+                                        <span>
+                                            Remaining
+                                        </span>
+
+                                        <span>
+                                            ₹
+                                            {Number(
+                                                remainingTotal
+                                            ).toLocaleString(
+                                                "en-IN",
+                                                {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                }
+                                            )}
+                                        </span>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>}
+
+                        <div className="flex-1 max-w-sm rounded-lg border p-5">
+
+                            <h3 className="mb-4 font-semibold">
+                                Order Summary
+                            </h3>
+
+                            <div className="space-y-3 text-sm">
+
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">
+                                        Subtotal
+                                    </span>
+
+                                    <span>
+                                        ₹
+                                        {Number(
+                                            subtotal
+                                        ).toLocaleString(
+                                            "en-IN",
+                                            {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            }
+                                        )}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">
+                                        Shipping
+                                    </span>
+
+                                    <span>
+                                        ₹
+                                        {shipping.toLocaleString(
+                                            "en-IN",
+                                            {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            }
+                                        )}
+                                    </span>
+                                </div>
+
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">
+                                        Discount
+                                    </span>
+
+                                    <span className="text-green-600">
+                                        - ₹
+                                        {discount.toLocaleString(
+                                            "en-IN",
+                                            {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            }
+                                        )}
+                                    </span>
+                                </div>
+
+                                <div className="border-t pt-3">
+
+                                    <div className="flex justify-between text-base font-semibold">
+
+                                        <span>
+                                            Total
+                                        </span>
+
+                                        <span>
+                                            ₹
+                                            {Number(
+                                                total
+                                            ).toLocaleString(
+                                                "en-IN",
+                                                {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                }
+                                            )}
+                                        </span>
+
+                                    </div>
+
+                                </div>
                             </div>
                         </div>
                     </div>

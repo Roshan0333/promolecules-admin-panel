@@ -19,8 +19,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-import { Download } from "lucide-react"
-
 import { Input } from "@/components/ui/input";
 
 import {
@@ -42,41 +40,40 @@ import {
   User,
   CreditCard,
   FileText,
-  ExternalLink,
   CalendarDays,
   Phone,
   Mail,
+  Download,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 
 import axios from "axios";
 import { useState } from "react";
 
 const paymentColors = {
+  partial_paid:"bg-green-100 border-green-200 text-black-700 p-4 text-[15px] font-bold",
   paid: "bg-green-100 border-green-200 text-black-700 p-4 text-[15px] font-bold",
   pending:
     "bg-yellow-100 border-yellow-200 text-black-700 p-4 text-[15px] font-bold",
-  failed: "bg-red-100 border-red-200 text-black-700 p-4 text-[15px] font-bold",
+  failed:
+    "bg-red-100 border-red-200 text-black-700 p-4 text-[15px] font-bold",
 };
 
 const statusColors = {
   pending:
     "bg-yellow-100 border-yellow-200 text-black-700 p-4 text-[15px] font-bold",
-
   confirmed:
     "bg-green-100 border-green-200 text-black-700 p-4 text-[15px] font-bold",
-
   placed:
     "bg-green-100 border-green-200 text-black-700 p-4 text-[15px] font-bold",
-
   ready_to_ship:
     "bg-blue-100 border-blue-200 text-black-700 p-4 text-[15px] font-bold",
-
   on_the_way:
     "bg-purple-100 border-purple-200 text-black-700 p-4 text-[15px] font-bold",
-
   delivered:
     "bg-green-100 border-green-200 text-black-700 p-4 text-[15px] font-bold",
-
   cancelled:
     "bg-red-100 border-red-200 text-black-700 p-4 text-[15px] font-bold",
 };
@@ -90,7 +87,6 @@ function formatDate(date) {
     year: "numeric",
   });
 }
-
 
 function formatDateTime(date) {
   if (!date) return "-";
@@ -112,46 +108,38 @@ function formatAmount(amount) {
   return `₹${Number(amount).toLocaleString("en-IN")}`;
 }
 
-
 export default function OrderTable({
   orders,
   onEdit,
   onDelete,
   onOrderClick,
 }) {
-
-
-  const [serviceMode, setServiceMode] =
-    useState(false);
-
+  const [serviceMode, setServiceMode] = useState(false);
   const [paymentMode, setPaymentMode] = useState("");
   const [shipmentType, setShipmentType] = useState("");
 
   const [deliveryPathner, setDeliveryPathner] = useState([]);
-
   const [deliveryStatus, setDeliveyStatus] = useState(false);
-
-  const [selectedDeliveryPartner, setSelectedDeliveryPartner] = useState(null);
-
+  const [selectedDeliveryPartner, setSelectedDeliveryPartner] =
+    useState(null);
 
   const [selectedOrder, setSelectedOrder] = useState(null);
 
   const [shipmentDetailsOpen, setShipmentDetailsOpen] = useState(false);
-
   const [shipmentDetails, setShipmentDetails] = useState(null);
 
-
   const [loading, setLoading] = useState(false);
-
   const [partnerLoading, setPartnerLoading] = useState(false);
 
   const [from, setFrom] = useState("201309");
-  const [to, setTo] = useState(selectedOrder?.shippingPincode || "");
+  const [to, setTo] = useState("");
 
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmOrder, setConfirmOrder] = useState(null);
 
   const resetShipmentData = () => {
     setServiceMode(false);
-
     setDeliveyStatus(false);
 
     setFrom("");
@@ -161,31 +149,35 @@ export default function OrderTable({
     setShipmentType("");
 
     setDeliveryPathner([]);
-
     setSelectedDeliveryPartner(null);
 
     setSelectedOrder(null);
+
     window.location.reload();
   };
 
+  const openConfirmDialog = (action, order) => {
+    setConfirmAction(action);
+    setConfirmOrder(order);
+    setConfirmDialogOpen(true);
+  };
 
-  const handleViewShipmentDetails = (
-    e,
-    order
-  ) => {
+  const closeConfirmDialog = () => {
+    if (loading || partnerLoading) return;
+
+    setConfirmDialogOpen(false);
+    setConfirmAction(null);
+    setConfirmOrder(null);
+  };
+
+  const handleViewShipmentDetails = (e, order) => {
     e.stopPropagation();
 
     setShipmentDetails(order);
-
     setShipmentDetailsOpen(true);
   };
 
-
-
-  const handleShipmentClick = (
-    e,
-    order
-  ) => {
+  const handleShipmentClick = (e, order) => {
     e.stopPropagation();
 
     if (
@@ -195,102 +187,71 @@ export default function OrderTable({
       return;
     }
 
-
-    if (
-      order.shipmentStatus ===
-      "not_shipped"
-    ) {
+    if (order.shipmentStatus === "not_shipped") {
       setSelectedOrder(order);
-
+      setTo(order.shippingPincode || "");
       setServiceMode(true);
-
       return;
     }
-
 
     handleViewShipmentDetails(e, order);
   };
 
-
-
-  const handleCreateVelocity =
-    async () => {
-      if (!selectedOrder) return;
-
-      try {
-        setLoading(true);
-
-        const baseUrl =
-          process.env
-            .NEXT_PUBLIC_BASE_URL;
-
-        const token =
-          sessionStorage.getItem(
-            "pm_admin_token"
-          );
-
-        const url = `${baseUrl}/api/velocity/serviceability`;
-
-
-        const response =
-          await axios.post(
-            url,
-            {
-              from: from,
-              to: to,
-              payment_mode:
-                paymentMode,
-              shipment_type:
-                shipmentType,
-            },
-            {
-              headers: {
-                "Content-Type":
-                  "application/json",
-
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-        if (response.data.success) {
-          setDeliveryPathner(
-            response.data.couriers ||
-            []
-          );
-
-          setServiceMode(false);
-
-          setDeliveyStatus(true);
-        }
-      } catch (err) {
-        console.error(
-          "Serviceability error:",
-          err.response?.data ||
-          err.message
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-  const handleCancelShipment = async (order) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to cancel shipment for order ${order.orderNumber || `#${order.id}`}?`
-    );
-
-    if (!confirmed) return;
+  const handleCreateVelocity = async () => {
+    if (!selectedOrder) return;
 
     try {
       setLoading(true);
 
-      const baseUrl =
-        process.env.NEXT_PUBLIC_BASE_URL;
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
-      const token =
-        sessionStorage.getItem("pm_admin_token");
+      const token = sessionStorage.getItem("pm_admin_token");
 
-      const url = `${baseUrl}/api/velocity/cancel/${order.id}`;
+      const url = `${baseUrl}/api/velocity/serviceability`;
+
+      const response = await axios.post(
+        url,
+        {
+          from: from,
+          to: to,
+          payment_mode: paymentMode,
+          shipment_type: shipmentType,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setDeliveryPathner(response.data.couriers || []);
+
+        setServiceMode(false);
+        setDeliveyStatus(true);
+      }
+    } catch (err) {
+      console.error(
+        "Serviceability error:",
+        err.response?.data || err.message
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelShipment = async () => {
+    if (!confirmOrder) return;
+
+    try {
+      setLoading(true);
+
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+      const token = sessionStorage.getItem("pm_admin_token");
+
+      const url = `${baseUrl}/api/velocity/cancel/${confirmOrder.id}`;
 
       const response = await axios.post(
         url,
@@ -304,6 +265,10 @@ export default function OrderTable({
       );
 
       if (response.data.success) {
+        setConfirmDialogOpen(false);
+        setConfirmAction(null);
+        setConfirmOrder(null);
+
         window.location.reload();
       }
     } catch (err) {
@@ -316,157 +281,109 @@ export default function OrderTable({
     }
   };
 
-  const handleCloseServiceDialog =
-    (open) => {
-      setServiceMode(open);
+  const handleCloseServiceDialog = (open) => {
+    setServiceMode(open);
 
-      if (!open) {
-        setFrom("");
-        setTo("");
+    if (!open) {
+      setFrom("");
+      setTo("");
 
-        setPaymentMode("");
-        setShipmentType("");
+      setPaymentMode("");
+      setShipmentType("");
 
-        setSelectedOrder(null);
-      }
-    };
+      setSelectedOrder(null);
+    }
+  };
 
+  const handleClosePartnerDialog = (open) => {
+    setDeliveyStatus(open);
 
-  const handleClosePartnerDialog =
-    (open) => {
-      setDeliveyStatus(open);
+    if (!open) {
+      setDeliveryPathner([]);
+      setSelectedDeliveryPartner(null);
 
-      if (!open) {
-        setDeliveryPathner([]);
+      setFrom("");
+      setTo("");
 
-        setSelectedDeliveryPartner(
-          null
-        );
+      setPaymentMode("");
+      setShipmentType("");
 
-        setFrom("");
-        setTo("");
+      setSelectedOrder(null);
+    }
+  };
 
-        setPaymentMode("");
-        setShipmentType("");
+  const handleSelectDeliveryPartner = (partner) => {
+    setSelectedDeliveryPartner(partner);
+  };
 
-        setSelectedOrder(null);
-      }
-    };
+  const handleConfirmDeliveryPartner = () => {
+    if (!selectedOrder || !selectedDeliveryPartner) {
+      return;
+    }
 
-  const handleSelectDeliveryPartner =
-    (partner) => {
-      setSelectedDeliveryPartner(
-        partner
-      );
-    };
+    openConfirmDialog("create", selectedOrder);
+  };
 
-  const handleConfirmDeliveryPartner =
-    async () => {
-      if (
-        !selectedOrder ||
-        !selectedDeliveryPartner
-      ) {
-        return;
-      }
+  const createShipment = async () => {
+    if (!selectedOrder || !selectedDeliveryPartner) {
+      return;
+    }
 
-      try {
-        setPartnerLoading(true);
+    try {
+      setPartnerLoading(true);
 
-        const baseUrl =
-          process.env
-            .NEXT_PUBLIC_BASE_URL;
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
-        const token =
-          sessionStorage.getItem(
-            "pm_admin_token"
-          );
+      const token = sessionStorage.getItem("pm_admin_token");
 
-        const carrierId =
-          selectedDeliveryPartner.carrier_id;
+      const url = `${baseUrl}/api/velocity/shipment/${selectedOrder.id}`;
 
-        const carrierName =
-          selectedDeliveryPartner.carrier_name;
-
-        const expectedDeliveryDate =
-          selectedDeliveryPartner.expected_delivery_date;
-
-        const url = `${baseUrl}/api/velocity/shipment/${selectedOrder.id}`;
-
-        const response =
-          await axios.post(
-            url,
-            {},
-            {
-              headers: {
-                "Content-Type":
-                  "application/json",
-
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-        if (response.data.success) {
-          resetShipmentData();
-
+      const response = await axios.post(
+        url,
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         }
-      } catch (err) {
-        console.error(
-          "Create shipment error:",
-          err.response?.data ||
-          err.message
-        );
-      } finally {
-        setPartnerLoading(false);
+      );
+
+      if (response.data.success) {
+        setConfirmDialogOpen(false);
+        setConfirmAction(null);
+        setConfirmOrder(null);
+
+        resetShipmentData();
       }
-    };
+    } catch (err) {
+      console.error(
+        "Create shipment error:",
+        err.response?.data || err.message
+      );
+    } finally {
+      setPartnerLoading(false);
+    }
+  };
 
   return (
     <>
-
       <Table className="min-w-[1400px]">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[15%]">
-              Order
-            </TableHead>
-
-            <TableHead className="w-[15%]">
-              Customer
-            </TableHead>
-
-            <TableHead className="w-[12%]">
-              Items
-            </TableHead>
-
-            <TableHead className="w-[25%]">
-              Shipping Address
-            </TableHead>
-
-            <TableHead className="w-[10%]">
-              Amount
-            </TableHead>
-
-            <TableHead className="w-[10%]">
-              Payment
-            </TableHead>
-
-            <TableHead className="w-[10%]">
-              Status
-            </TableHead>
-
-            <TableHead className="w-[10%]">
-              Ship Status
-            </TableHead>
-
-            <TableHead className="w-[10%]">
-              Created
-            </TableHead>
+            <TableHead className="w-[15%]">Order</TableHead>
+            <TableHead className="w-[15%]">Customer</TableHead>
+            <TableHead className="w-[12%]">Items</TableHead>
+            <TableHead className="w-[25%]">Shipping Address</TableHead>
+            <TableHead className="w-[10%]">Amount</TableHead>
+            <TableHead className="w-[10%]">Payment</TableHead>
+            <TableHead className="w-[10%]">Status</TableHead>
+            <TableHead className="w-[10%]">Ship Status</TableHead>
+            <TableHead className="w-[10%]">Created</TableHead>
           </TableRow>
         </TableHeader>
 
         <TableBody>
-          {/* EMPTY */}
           {orders.length === 0 && (
             <TableRow>
               <TableCell
@@ -478,23 +395,15 @@ export default function OrderTable({
             </TableRow>
           )}
 
-          {/* ORDERS */}
           {orders.map((o) => (
             <TableRow
               key={o.id}
-              onClick={() =>
-                onOrderClick(o)
-              }
+              onClick={() => onOrderClick(o)}
               className="cursor-pointer transition-colors hover:bg-slate-50"
             >
-              {/* ---------------------------------------
-                  ORDER
-              ---------------------------------------- */}
-
               <TableCell>
                 <div className="text-sm font-medium">
-                  {o.orderNumber ||
-                    `#${o.id}`}
+                  {o.orderNumber || `#${o.id}`}
                 </div>
 
                 <div className="text-xs text-slate-400">
@@ -504,9 +413,7 @@ export default function OrderTable({
 
               <TableCell>
                 <div className="max-w-[200px] truncate text-sm font-medium">
-                  {o.user?.name ||
-                    o.shippingFullName ||
-                    "-"}
+                  {o.user?.name || o.shippingFullName || "-"}
                 </div>
 
                 <div className="max-w-[200px] break-all text-xs text-slate-400">
@@ -514,32 +421,22 @@ export default function OrderTable({
                 </div>
 
                 <div className="text-xs text-slate-400">
-                  {o.shippingMobile ||
-                    "-"}
+                  {o.shippingMobile || "-"}
                 </div>
               </TableCell>
 
               <TableCell>
                 <div className="text-sm font-medium">
-                  {o.items?.length || 0}{" "}
-                  item
-                  {(o.items?.length || 0) !==
-                    1
-                    ? "s"
-                    : ""}
+                  {o.items?.length || 0} item
+                  {(o.items?.length || 0) !== 1 ? "s" : ""}
                 </div>
 
                 {o.items?.length > 0 && (
                   <div className="max-w-[150px] truncate text-xs text-slate-400">
-                    {
-                      o.items[0]
-                        .productName
-                    }
+                    {o.items[0].productName}
 
-                    {o.items.length >
-                      1 &&
-                      ` + ${o.items.length - 1
-                      } more`}
+                    {o.items.length > 1 &&
+                      ` + ${o.items.length - 1} more`}
                   </div>
                 )}
               </TableCell>
@@ -547,51 +444,37 @@ export default function OrderTable({
               <TableCell>
                 <div className="max-w-[320px] text-sm">
                   <div className="font-medium text-slate-900">
-                    {o.shippingFullName ||
-                      "-"}
+                    {o.shippingFullName || "-"}
                   </div>
 
                   <div className="text-xs text-slate-500">
-                    {o.shippingMobile ||
-                      "-"}
+                    {o.shippingMobile || "-"}
                   </div>
 
                   <div className="mt-1 text-xs text-slate-600">
-                    {o.shippingAddressLine1 ||
-                      "-"}
+                    {o.shippingAddressLine1 || "-"}
                   </div>
 
                   {o.shippingAddressLine2 && (
                     <div className="text-xs text-slate-600">
-                      {
-                        o.shippingAddressLine2
-                      }
+                      {o.shippingAddressLine2}
                     </div>
                   )}
 
                   {o.shippingLandmark && (
                     <div className="text-xs text-slate-500">
-                      Landmark:{" "}
-                      {
-                        o.shippingLandmark
-                      }
+                      Landmark: {o.shippingLandmark}
                     </div>
                   )}
 
                   <div className="text-xs text-slate-600">
-                    {[
-                      o.shippingCity,
-                      o.shippingState,
-                    ]
+                    {[o.shippingCity, o.shippingState]
                       .filter(Boolean)
                       .join(", ")}
                   </div>
 
                   <div className="text-xs text-slate-600">
-                    {[
-                      o.shippingCountry,
-                      o.shippingPincode,
-                    ]
+                    {[o.shippingCountry, o.shippingPincode]
                       .filter(Boolean)
                       .join(" - ")}
                   </div>
@@ -601,9 +484,7 @@ export default function OrderTable({
                       variant="outline"
                       className="mt-1 text-[10px]"
                     >
-                      {
-                        o.shippingAddressType
-                      }
+                      {o.shippingAddressType}
                     </Badge>
                   )}
                 </div>
@@ -611,40 +492,29 @@ export default function OrderTable({
 
               <TableCell>
                 <div className="text-sm font-medium">
-                  {formatAmount(
-                    o.totalAmount
-                  )}
+                  {formatAmount(o.totalAmount)}
                 </div>
 
-                {Number(
-                  o.discountAmount
-                ) > 0 && (
-                    <div className="text-xs text-green-600">
-                      -
-                      {formatAmount(
-                        o.discountAmount
-                      )}
-                    </div>
-                  )}
+                {Number(o.discountAmount) > 0 && (
+                  <div className="text-xs text-green-600">
+                    -{formatAmount(o.discountAmount)}
+                  </div>
+                )}
               </TableCell>
 
               <TableCell>
                 <Badge
                   variant="outline"
                   className={
-                    paymentColors[
-                    o.paymentStatus
-                    ] ||
+                    paymentColors[o.paymentStatus] ||
                     "bg-slate-100 text-slate-700"
                   }
                 >
-                  {(o.paymentStatus).toUpperCase() ||
-                    "-"}
+                  {(o.paymentStatus || "-").toUpperCase()}
                 </Badge>
 
                 <div className="mt-1 text-xs text-slate-400">
-                  {o.paymentMethod ||
-                    "-"}
+                  {o.paymentMethod || "-"}
                 </div>
               </TableCell>
 
@@ -652,16 +522,13 @@ export default function OrderTable({
                 <Badge
                   variant="outline"
                   className={
-                    statusColors[
-                    o.displayStage
-                    ] ||
+                    statusColors[o.displayStage] ||
                     "bg-slate-100 text-slate-700 py-5"
                   }
                 >
-                  {(o.displayStage).toUpperCase() || "-"}
+                  {(o.displayStage || "-").toUpperCase()}
                 </Badge>
               </TableCell>
-
 
               <TableCell>
                 {o.displayStage === "pending" ? (
@@ -676,9 +543,8 @@ export default function OrderTable({
                     variant="outline"
                     onClick={(e) => {
                       handleShipmentClick(e, o);
-                      setTo(o.shippingPincode)
                     }}
-                    className="cursor-pointer border-green-300 bg-green-100 text-black-700 p-4 text-[15px] font-bold hover:bg-green-200"
+                    className="cursor-pointer border-green-300 bg-green-100 p-4 text-[15px] font-bold text-black-700 hover:bg-green-200"
                   >
                     Ship Now
                   </Badge>
@@ -686,15 +552,17 @@ export default function OrderTable({
                   <div className="flex items-center gap-2">
                     <Badge
                       variant="outline"
-                      onClick={(e) => handleViewShipmentDetails(e, o)}
-                      className="cursor-pointer border-blue-300 bg-blue-100 hover:bg-blue-200 text-black-700 p-4 text-[15px] font-bold"
+                      onClick={(e) =>
+                        handleViewShipmentDetails(e, o)
+                      }
+                      className="cursor-pointer border-blue-300 bg-blue-100 p-4 text-[15px] font-bold text-black-700 hover:bg-blue-200"
                     >
                       View Details
                     </Badge>
 
                     <Badge
                       variant="outline"
-                      className="cursor-default border-slate-300 bg-slate-100 text-black-700 p-4 text-[15px] font-bold"
+                      className="cursor-default border-slate-300 bg-slate-100 p-4 text-[15px] font-bold text-black-700"
                     >
                       Cancelled
                     </Badge>
@@ -703,8 +571,10 @@ export default function OrderTable({
                   <div className="flex items-center gap-2">
                     <Badge
                       variant="outline"
-                      onClick={(e) => handleViewShipmentDetails(e, o)}
-                      className="cursor-pointer border-blue-300 bg-blue-100 text-black-700 p-4 text-[15px] font-bold hover:bg-blue-200"
+                      onClick={(e) =>
+                        handleViewShipmentDetails(e, o)
+                      }
+                      className="cursor-pointer border-blue-300 bg-blue-100 p-4 text-[15px] font-bold text-black-700 hover:bg-blue-200"
                     >
                       View Details
                     </Badge>
@@ -713,9 +583,9 @@ export default function OrderTable({
                       variant="outline"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleCancelShipment(o);
+                        openConfirmDialog("cancel", o);
                       }}
-                      className="cursor-pointer border-red-300 bg-red-100 text-black-700 p-4 text-[15px] font-bold hover:bg-red-200"
+                      className="cursor-pointer border-red-300 bg-red-100 p-4 text-[15px] font-bold text-black-700 hover:bg-red-200"
                     >
                       Cancel Ship
                     </Badge>
@@ -724,9 +594,7 @@ export default function OrderTable({
               </TableCell>
 
               <TableCell className="whitespace-nowrap text-sm">
-                {formatDate(
-                  o.createdAt
-                )}
+                {formatDate(o.createdAt)}
               </TableCell>
             </TableRow>
           ))}
@@ -735,15 +603,11 @@ export default function OrderTable({
 
       <Dialog
         open={serviceMode}
-        onOpenChange={
-          handleCloseServiceDialog
-        }
+        onOpenChange={handleCloseServiceDialog}
       >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>
-              Create Shipment
-            </DialogTitle>
+            <DialogTitle>Create Shipment</DialogTitle>
 
             <DialogDescription>
               Enter shipment details for{" "}
@@ -755,8 +619,6 @@ export default function OrderTable({
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
-            {/* FROM */}
-
             <div className="space-y-2">
               <label className="text-sm font-medium">
                 From Pincode
@@ -765,11 +627,9 @@ export default function OrderTable({
               <Input
                 placeholder="Enter pickup pincode"
                 value={from}
-                disabled={true}
+                disabled
               />
             </div>
-
-            {/* TO */}
 
             <div className="space-y-2">
               <label className="text-sm font-medium">
@@ -778,17 +638,10 @@ export default function OrderTable({
 
               <Input
                 placeholder="Enter delivery pincode"
-                value={selectedOrder?.shippingPincode}
-                disabled={true}
-                onChange={(e) =>
-                  setTo(
-                    selectedOrder?.shippingPincode
-                  )
-                }
+                value={to}
+                disabled
               />
             </div>
-
-            {/* PAYMENT MODE */}
 
             <div className="space-y-2">
               <label className="text-sm font-medium">
@@ -797,9 +650,7 @@ export default function OrderTable({
 
               <Select
                 value={paymentMode}
-                onValueChange={
-                  setPaymentMode
-                }
+                onValueChange={setPaymentMode}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select payment mode" />
@@ -817,8 +668,6 @@ export default function OrderTable({
               </Select>
             </div>
 
-            {/* SHIPMENT TYPE */}
-
             <div className="space-y-2">
               <label className="text-sm font-medium">
                 Shipment Type
@@ -826,9 +675,7 @@ export default function OrderTable({
 
               <Select
                 value={shipmentType}
-                onValueChange={
-                  setShipmentType
-                }
+                onValueChange={setShipmentType}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select shipment type" />
@@ -842,16 +689,12 @@ export default function OrderTable({
               </Select>
             </div>
 
-            {/* BUTTONS */}
-
             <div className="flex justify-end gap-2 pt-3">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() =>
-                  handleCloseServiceDialog(
-                    false
-                  )
+                  handleCloseServiceDialog(false)
                 }
                 disabled={loading}
               >
@@ -865,9 +708,7 @@ export default function OrderTable({
                   !paymentMode ||
                   !shipmentType
                 }
-                onClick={
-                  handleCreateVelocity
-                }
+                onClick={handleCreateVelocity}
               >
                 {loading
                   ? "Checking..."
@@ -880,9 +721,7 @@ export default function OrderTable({
 
       <Dialog
         open={deliveryStatus}
-        onOpenChange={
-          handleClosePartnerDialog
-        }
+        onOpenChange={handleClosePartnerDialog}
       >
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -900,79 +739,66 @@ export default function OrderTable({
           </DialogHeader>
 
           <div className="max-h-[450px] space-y-3 overflow-y-auto pr-1">
-            {deliveryPathner.length ===
-              0 ? (
+            {deliveryPathner.length === 0 ? (
               <div className="rounded-lg border border-dashed p-8 text-center">
                 <p className="text-sm text-slate-500">
-                  No delivery partners
-                  available.
+                  No delivery partners available.
                 </p>
               </div>
             ) : (
-              deliveryPathner.map(
-                (partner) => {
-                  const isSelected =
-                    selectedDeliveryPartner?.carrier_id ===
-                    partner.carrier_id;
+              deliveryPathner.map((partner) => {
+                const isSelected =
+                  selectedDeliveryPartner?.carrier_id ===
+                  partner.carrier_id;
 
-                  return (
-                    <div
-                      key={
-                        partner.carrier_id
-                      }
-                      onClick={(e) => {
-                        e.stopPropagation();
-
-                        handleSelectDeliveryPartner(
-                          partner
-                        );
-                      }}
-                      className={`cursor-pointer rounded-lg border p-4 transition ${isSelected
+                return (
+                  <div
+                    key={partner.carrier_id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectDeliveryPartner(partner);
+                    }}
+                    className={`cursor-pointer rounded-lg border p-4 transition ${
+                      isSelected
                         ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500"
                         : "border-slate-200 hover:border-slate-400 hover:bg-slate-50"
-                        }`}
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="min-w-0">
-                          <div className="font-medium text-slate-900">
-                            {
-                              partner.carrier_name
-                            }
-                          </div>
-
-                          <div className="mt-1 text-xs text-slate-400">
-                            Carrier ID:{" "}
-                            {
-                              partner.carrier_id
-                            }
-                          </div>
-
-                          <div className="mt-2 text-sm text-slate-600">
-                            Expected
-                            Delivery:{" "}
-                            <span className="font-medium">
-                              {formatDate(
-                                partner.expected_delivery_date
-                              )}
-                            </span>
-                          </div>
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="font-medium text-slate-900">
+                          {partner.carrier_name}
                         </div>
 
-                        <div
-                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${isSelected
-                            ? "border-blue-600 bg-blue-600"
-                            : "border-slate-300 bg-white"
-                            }`}
-                        >
-                          {isSelected && (
-                            <div className="h-2 w-2 rounded-full bg-white" />
-                          )}
+                        <div className="mt-1 text-xs text-slate-400">
+                          Carrier ID: {partner.carrier_id}
+                        </div>
+
+                        <div className="mt-2 text-sm text-slate-600">
+                          Expected Delivery:{" "}
+                          <span className="font-medium">
+                            {formatDate(
+                              partner.expected_delivery_date
+                            )}
+                          </span>
                         </div>
                       </div>
+
+                      <div
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                          isSelected
+                            ? "border-blue-600 bg-blue-600"
+                            : "border-slate-300 bg-white"
+                        }`}
+                      >
+                        {isSelected && (
+                          <div className="h-2 w-2 rounded-full bg-white" />
+                        )}
+                      </div>
                     </div>
-                  );
-                }
-              )
+                  </div>
+                );
+              })
             )}
           </div>
 
@@ -981,9 +807,7 @@ export default function OrderTable({
               type="button"
               variant="outline"
               onClick={() =>
-                handleClosePartnerDialog(
-                  false
-                )
+                handleClosePartnerDialog(false)
               }
               disabled={partnerLoading}
             >
@@ -996,24 +820,268 @@ export default function OrderTable({
                 !selectedDeliveryPartner ||
                 partnerLoading
               }
-              onClick={
-                handleConfirmDeliveryPartner
-              }
+              onClick={handleConfirmDeliveryPartner}
             >
-              {partnerLoading
-                ? "Creating..."
-                : "Create Shipment"}
+              Create Shipment
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog
+        open={confirmDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeConfirmDialog();
+          }
+        }}
+      >
+        <DialogContent className="overflow-hidden p-0 sm:max-w-[440px]">
+          {confirmAction === "cancel" ? (
+            <>
+              <div className="border-b bg-red-50 px-6 py-5">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100">
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                  </div>
+
+                  <div>
+                    <DialogTitle className="text-lg font-semibold text-slate-900">
+                      Cancel Shipment?
+                    </DialogTitle>
+
+                    <DialogDescription className="mt-1 text-sm text-slate-600">
+                      Are you sure you want to cancel this
+                      shipment?
+                    </DialogDescription>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-6 py-5">
+                <div className="rounded-lg border bg-slate-50 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm text-slate-500">
+                      Order
+                    </span>
+
+                    <span className="text-sm font-semibold text-slate-900">
+                      {confirmOrder?.orderNumber ||
+                        `#${confirmOrder?.id}`}
+                    </span>
+                  </div>
+
+                  {confirmOrder?.courierName && (
+                    <div className="mt-3 flex items-center justify-between gap-4">
+                      <span className="text-sm text-slate-500">
+                        Courier
+                      </span>
+
+                      <span className="text-sm font-medium text-slate-900">
+                        {confirmOrder.courierName}
+                      </span>
+                    </div>
+                  )}
+
+                  {confirmOrder?.awbCode && (
+                    <div className="mt-3 flex items-center justify-between gap-4">
+                      <span className="text-sm text-slate-500">
+                        AWB
+                      </span>
+
+                      <span className="font-mono text-sm font-medium text-slate-900">
+                        {confirmOrder.awbCode}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+                  <div className="flex gap-2">
+                    <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+
+                    <p className="text-xs leading-5 text-red-700">
+                      Once the shipment is cancelled, this
+                      action cannot be undone from the admin
+                      panel.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t bg-white px-6 py-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={closeConfirmDialog}
+                  disabled={loading}
+                >
+                  Keep Shipment
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleCancelShipment}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    "Cancelling..."
+                  ) : (
+                    <>
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Cancel Shipment
+                    </>
+                  )}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="border-b bg-green-50 px-6 py-5">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-100">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  </div>
+
+                  <div>
+                    <DialogTitle className="text-lg font-semibold text-slate-900">
+                      Confirm Shipment
+                    </DialogTitle>
+
+                    <DialogDescription className="mt-1 text-sm text-slate-600">
+                      Review the shipment details before
+                      creating the shipment.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-6 py-5">
+                <div className="rounded-xl border bg-slate-50 p-4">
+                  <div className="mb-4 flex items-center gap-2">
+                    <Truck className="h-4 w-4 text-slate-600" />
+
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      Shipment Summary
+                    </h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm text-slate-500">
+                        Order
+                      </span>
+
+                      <span className="text-sm font-semibold text-slate-900">
+                        {selectedOrder?.orderNumber ||
+                          `#${selectedOrder?.id}`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm text-slate-500">
+                        Courier Partner
+                      </span>
+
+                      <span className="text-sm font-semibold text-slate-900">
+                        {selectedDeliveryPartner?.carrier_name}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm text-slate-500">
+                        Carrier ID
+                      </span>
+
+                      <span className="font-mono text-xs text-slate-700">
+                        {selectedDeliveryPartner?.carrier_id}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm text-slate-500">
+                        Expected Delivery
+                      </span>
+
+                      <span className="text-sm font-medium text-slate-900">
+                        {formatDate(
+                          selectedDeliveryPartner?.expected_delivery_date
+                        )}
+                      </span>
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm text-slate-500">
+                        Payment Mode
+                      </span>
+
+                      <Badge variant="outline">
+                        {paymentMode}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm text-slate-500">
+                        Shipment Type
+                      </span>
+
+                      <Badge variant="outline">
+                        {shipmentType}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                  <div className="flex gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+
+                    <p className="text-xs leading-5 text-green-700">
+                      Confirming will create the shipment
+                      with the selected delivery partner.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t bg-white px-6 py-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={closeConfirmDialog}
+                  disabled={partnerLoading}
+                >
+                  Go Back
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={createShipment}
+                  disabled={partnerLoading}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {partnerLoading ? (
+                    "Creating..."
+                  ) : (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Confirm & Create
+                    </>
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
         open={shipmentDetailsOpen}
         onOpenChange={(open) => {
-          setShipmentDetailsOpen(
-            open
-          );
+          setShipmentDetailsOpen(open);
 
           if (!open) {
             setShipmentDetails(null);
@@ -1026,15 +1094,13 @@ export default function OrderTable({
               <div>
                 <DialogTitle className="flex items-center gap-2 text-xl">
                   <Package className="h-5 w-5" />
-
                   Shipment Details
                 </DialogTitle>
 
                 <DialogDescription className="mt-1">
                   Shipment information for{" "}
                   <span className="font-medium text-slate-900">
-                    {shipmentDetails?.orderNumber ||
-                      "-"}
+                    {shipmentDetails?.orderNumber || "-"}
                   </span>
                 </DialogDescription>
               </div>
@@ -1043,8 +1109,7 @@ export default function OrderTable({
                 <Badge
                   variant="outline"
                   className={
-                    shipmentDetails.shipmentStatus ===
-                      "cancelled"
+                    shipmentDetails.shipmentStatus === "cancelled"
                       ? "border-red-200 bg-red-100 text-red-700"
                       : "border-green-200 bg-green-100 text-green-700"
                   }
@@ -1057,7 +1122,6 @@ export default function OrderTable({
 
           {shipmentDetails && (
             <div className="space-y-6 pt-2">
-
               <div className="rounded-xl border bg-slate-50 p-4">
                 <div className="mb-4 flex items-center gap-2">
                   <Truck className="h-4 w-4 text-slate-600" />
@@ -1068,20 +1132,15 @@ export default function OrderTable({
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {/* COURIER */}
-
                   <div>
                     <p className="text-xs text-slate-500">
                       Courier Partner
                     </p>
 
                     <p className="mt-1 text-sm font-medium text-slate-900">
-                      {shipmentDetails.courierName ||
-                        "-"}
+                      {shipmentDetails.courierName || "-"}
                     </p>
                   </div>
-
-                  {/* AWB */}
 
                   <div>
                     <p className="text-xs text-slate-500">
@@ -1089,12 +1148,9 @@ export default function OrderTable({
                     </p>
 
                     <p className="mt-1 font-mono text-sm font-medium text-slate-900">
-                      {shipmentDetails.awbCode ||
-                        "-"}
+                      {shipmentDetails.awbCode || "-"}
                     </p>
                   </div>
-
-                  {/* VELOCITY ORDER */}
 
                   <div>
                     <p className="text-xs text-slate-500">
@@ -1102,12 +1158,9 @@ export default function OrderTable({
                     </p>
 
                     <p className="mt-1 break-all font-mono text-sm text-slate-900">
-                      {shipmentDetails.velocityOrderId ||
-                        "-"}
+                      {shipmentDetails.velocityOrderId || "-"}
                     </p>
                   </div>
-
-                  {/* VELOCITY SHIPMENT */}
 
                   <div>
                     <p className="text-xs text-slate-500">
@@ -1115,12 +1168,9 @@ export default function OrderTable({
                     </p>
 
                     <p className="mt-1 break-all font-mono text-sm text-slate-900">
-                      {shipmentDetails.velocityShipmentId ||
-                        "-"}
+                      {shipmentDetails.velocityShipmentId || "-"}
                     </p>
                   </div>
-
-                  {/* CREATED */}
 
                   <div>
                     <div className="flex items-center gap-1.5">
@@ -1132,13 +1182,9 @@ export default function OrderTable({
                     </div>
 
                     <p className="mt-1 text-sm text-slate-900">
-                      {formatDateTime(
-                        shipmentDetails.createdAt
-                      )}
+                      {formatDateTime(shipmentDetails.createdAt)}
                     </p>
                   </div>
-
-                  {/* UPDATED */}
 
                   <div>
                     <div className="flex items-center gap-1.5">
@@ -1150,38 +1196,45 @@ export default function OrderTable({
                     </div>
 
                     <p className="mt-1 text-sm text-slate-900">
-                      {formatDateTime(
-                        shipmentDetails.updatedAt
-                      )}
+                      {formatDateTime(shipmentDetails.updatedAt)}
                     </p>
                   </div>
                 </div>
 
-                {/* SHIPPING LABEL */}
+                {shipmentDetails.labelUrl &&
+                  shipmentDetails.shipmentStatus !== "cancelled" && (
+                    <div className="mt-4 border-t pt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                        onClick={() => {
+                          const link =
+                            document.createElement("a");
 
-                {(shipmentDetails.labelUrl && shipmentDetails.shipmentStatus !== "cancelled") && (
-                  <div className="mt-4 border-t pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full sm:w-auto"
-                      onClick={() => {
-                        const link = document.createElement("a");
-                        link.href = shipmentDetails.labelUrl;
-                        link.download = `shipping-label-${shipmentDetails.trackingNumber || "label"}.pdf`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                      }}
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
+                          link.href =
+                            shipmentDetails.labelUrl;
 
-                      Download Shipping Label
+                          link.download = `shipping-label-${
+                            shipmentDetails.trackingNumber ||
+                            "label"
+                          }.pdf`;
 
-                      <Download className="ml-2 h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                )}
+                          document.body.appendChild(link);
+
+                          link.click();
+
+                          document.body.removeChild(link);
+                        }}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+
+                        Download Shipping Label
+
+                        <Download className="ml-2 h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
               </div>
 
               <div>
@@ -1194,8 +1247,6 @@ export default function OrderTable({
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 rounded-xl border p-4 sm:grid-cols-2">
-                  {/* NAME */}
-
                   <div>
                     <p className="text-xs text-slate-500">
                       Customer Name
@@ -1208,20 +1259,15 @@ export default function OrderTable({
                     </p>
                   </div>
 
-                  {/* CUSTOMER ID */}
-
                   <div>
                     <p className="text-xs text-slate-500">
                       Customer ID
                     </p>
 
                     <p className="mt-1 text-sm text-slate-900">
-                      {shipmentDetails.userId ||
-                        "-"}
+                      {shipmentDetails.userId || "-"}
                     </p>
                   </div>
-
-                  {/* EMAIL */}
 
                   <div>
                     <div className="flex items-center gap-1.5">
@@ -1238,8 +1284,6 @@ export default function OrderTable({
                         "-"}
                     </p>
                   </div>
-
-                  {/* MOBILE */}
 
                   <div>
                     <div className="flex items-center gap-1.5">
@@ -1289,9 +1333,7 @@ export default function OrderTable({
                         variant="outline"
                         className="text-xs"
                       >
-                        {
-                          shipmentDetails.shippingAddressType
-                        }
+                        {shipmentDetails.shippingAddressType}
                       </Badge>
                     )}
                   </div>
@@ -1299,26 +1341,20 @@ export default function OrderTable({
                   <div className="mt-3 space-y-1 text-sm text-slate-600">
                     {shipmentDetails.shippingAddressLine1 && (
                       <p>
-                        {
-                          shipmentDetails.shippingAddressLine1
-                        }
+                        {shipmentDetails.shippingAddressLine1}
                       </p>
                     )}
 
                     {shipmentDetails.shippingAddressLine2 && (
                       <p>
-                        {
-                          shipmentDetails.shippingAddressLine2
-                        }
+                        {shipmentDetails.shippingAddressLine2}
                       </p>
                     )}
 
                     {shipmentDetails.shippingLandmark && (
                       <p>
                         Landmark:{" "}
-                        {
-                          shipmentDetails.shippingLandmark
-                        }
+                        {shipmentDetails.shippingLandmark}
                       </p>
                     )}
 
@@ -1353,62 +1389,48 @@ export default function OrderTable({
                 </div>
 
                 <div className="overflow-hidden rounded-xl border">
-                  {shipmentDetails.items
-                    ?.length > 0 ? (
+                  {shipmentDetails.items?.length > 0 ? (
                     <div className="divide-y">
-                      {shipmentDetails.items.map(
-                        (item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between gap-4 p-4"
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-slate-900">
-                                {item.productName ||
-                                  "-"}
-                              </p>
+                      {shipmentDetails.items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between gap-4 p-4"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-slate-900">
+                              {item.productName || "-"}
+                            </p>
 
-                              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-                                {item.flavour && (
-                                  <span>
-                                    Flavour:{" "}
-                                    {
-                                      item.flavour
-                                    }
-                                  </span>
-                                )}
-
-                                {item.size && (
-                                  <span>
-                                    Size:{" "}
-                                    {
-                                      item.size
-                                    }
-                                  </span>
-                                )}
-
+                            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                              {item.flavour && (
                                 <span>
-                                  Qty:{" "}
-                                  {item.quantity ||
-                                    0}
+                                  Flavour: {item.flavour}
                                 </span>
-                              </div>
-                            </div>
+                              )}
 
-                            <div className="shrink-0 text-right">
-                              <p className="text-sm font-semibold text-slate-900">
-                                {formatAmount(
-                                  item.priceAtPurchase
-                                )}
-                              </p>
+                              {item.size && (
+                                <span>
+                                  Size: {item.size}
+                                </span>
+                              )}
 
-                              <p className="text-xs text-slate-400">
-                                per item
-                              </p>
+                              <span>
+                                Qty: {item.quantity || 0}
+                              </span>
                             </div>
                           </div>
-                        )
-                      )}
+
+                          <div className="shrink-0 text-right">
+                            <p className="text-sm font-semibold text-slate-900">
+                              {formatAmount(item.priceAtPurchase)}
+                            </p>
+
+                            <p className="text-xs text-slate-400">
+                              per item
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="p-6 text-center text-sm text-slate-500">
@@ -1417,10 +1439,6 @@ export default function OrderTable({
                   )}
                 </div>
               </div>
-
-              {/* -----------------------------------------
-                  ORDER + PAYMENT
-              ------------------------------------------ */}
 
               <div>
                 <div className="mb-4 flex items-center gap-2">
@@ -1433,20 +1451,15 @@ export default function OrderTable({
 
                 <div className="rounded-xl border p-4">
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    {/* ORDER NUMBER */}
-
                     <div>
                       <p className="text-xs text-slate-500">
                         Order Number
                       </p>
 
                       <p className="mt-1 break-all text-sm font-medium text-slate-900">
-                        {shipmentDetails.orderNumber ||
-                          "-"}
+                        {shipmentDetails.orderNumber || "-"}
                       </p>
                     </div>
-
-                    {/* PAYMENT METHOD */}
 
                     <div>
                       <p className="text-xs text-slate-500">
@@ -1454,12 +1467,9 @@ export default function OrderTable({
                       </p>
 
                       <p className="mt-1 text-sm font-medium text-slate-900">
-                        {shipmentDetails.paymentMethod ||
-                          "-"}
+                        {shipmentDetails.paymentMethod || "-"}
                       </p>
                     </div>
-
-                    {/* PAYMENT STATUS */}
 
                     <div>
                       <p className="text-xs text-slate-500">
@@ -1468,19 +1478,16 @@ export default function OrderTable({
 
                       <Badge
                         variant="outline"
-                        className={`mt-1 ${paymentColors[
-                          shipmentDetails
-                            .paymentStatus
-                        ] ||
+                        className={`mt-1 ${
+                          paymentColors[
+                            shipmentDetails.paymentStatus
+                          ] ||
                           "bg-slate-100 text-slate-700"
-                          }`}
+                        }`}
                       >
-                        {shipmentDetails.paymentStatus ||
-                          "-"}
+                        {shipmentDetails.paymentStatus || "-"}
                       </Badge>
                     </div>
-
-                    {/* ORDER STATUS */}
 
                     <div>
                       <p className="text-xs text-slate-500">
@@ -1489,26 +1496,21 @@ export default function OrderTable({
 
                       <Badge
                         variant="outline"
-                        className={`mt-1 ${statusColors[
-                          shipmentDetails
-                            .displayStage
-                        ] ||
+                        className={`mt-1 ${
+                          statusColors[
+                            shipmentDetails.displayStage
+                          ] ||
                           "bg-slate-100 text-slate-700"
-                          }`}
+                        }`}
                       >
-                        {shipmentDetails.displayStage ||
-                          "-"}
+                        {shipmentDetails.displayStage || "-"}
                       </Badge>
                     </div>
                   </div>
 
                   <Separator className="my-4" />
 
-                  {/* AMOUNTS */}
-
                   <div className="space-y-2">
-                    {/* SUBTOTAL */}
-
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-500">
                         Subtotal
@@ -1520,8 +1522,6 @@ export default function OrderTable({
                         )}
                       </span>
                     </div>
-
-                    {/* SHIPPING */}
 
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-500">
@@ -1535,26 +1535,22 @@ export default function OrderTable({
                       </span>
                     </div>
 
-                    {/* DISCOUNT */}
-
                     {Number(
                       shipmentDetails.discountAmount
                     ) > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-slate-500">
-                            Discount
-                          </span>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">
+                          Discount
+                        </span>
 
-                          <span className="font-medium text-green-600">
-                            -
-                            {formatAmount(
-                              shipmentDetails.discountAmount
-                            )}
-                          </span>
-                        </div>
-                      )}
-
-                    {/* COUPON */}
+                        <span className="font-medium text-green-600">
+                          -
+                          {formatAmount(
+                            shipmentDetails.discountAmount
+                          )}
+                        </span>
+                      </div>
+                    )}
 
                     {shipmentDetails.couponCode && (
                       <div className="flex justify-between text-sm">
@@ -1563,16 +1559,12 @@ export default function OrderTable({
                         </span>
 
                         <span className="font-medium text-slate-900">
-                          {
-                            shipmentDetails.couponCode
-                          }
+                          {shipmentDetails.couponCode}
                         </span>
                       </div>
                     )}
 
                     <Separator />
-
-                    {/* TOTAL */}
 
                     <div className="flex justify-between pt-1">
                       <span className="font-semibold text-slate-900">
@@ -1589,58 +1581,47 @@ export default function OrderTable({
                 </div>
               </div>
 
-
               {(shipmentDetails.razorpayOrderId ||
                 shipmentDetails.razorpayPaymentId) && (
-                  <div className="rounded-xl border bg-slate-50 p-4">
-                    <h3 className="mb-3 text-sm font-semibold text-slate-900">
-                      Payment Reference
-                    </h3>
+                <div className="rounded-xl border bg-slate-50 p-4">
+                  <h3 className="mb-3 text-sm font-semibold text-slate-900">
+                    Payment Reference
+                  </h3>
 
-                    <div className="space-y-3 text-xs">
-                      {/* RAZORPAY ORDER */}
+                  <div className="space-y-3 text-xs">
+                    {shipmentDetails.razorpayOrderId && (
+                      <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
+                        <span className="text-slate-500">
+                          Razorpay Order ID
+                        </span>
 
-                      {shipmentDetails.razorpayOrderId && (
-                        <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
-                          <span className="text-slate-500">
-                            Razorpay Order ID
-                          </span>
+                        <span className="break-all font-mono text-slate-700">
+                          {shipmentDetails.razorpayOrderId}
+                        </span>
+                      </div>
+                    )}
 
-                          <span className="break-all font-mono text-slate-700">
-                            {
-                              shipmentDetails.razorpayOrderId
-                            }
-                          </span>
-                        </div>
-                      )}
+                    {shipmentDetails.razorpayPaymentId && (
+                      <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
+                        <span className="text-slate-500">
+                          Razorpay Payment ID
+                        </span>
 
-                      {/* RAZORPAY PAYMENT */}
-
-                      {shipmentDetails.razorpayPaymentId && (
-                        <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
-                          <span className="text-slate-500">
-                            Razorpay Payment ID
-                          </span>
-
-                          <span className="break-all font-mono text-slate-700">
-                            {
-                              shipmentDetails.razorpayPaymentId
-                            }
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                        <span className="break-all font-mono text-slate-700">
+                          {shipmentDetails.razorpayPaymentId}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+              )}
 
               <div className="flex justify-end border-t pt-4">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() =>
-                    setShipmentDetailsOpen(
-                      false
-                    )
+                    setShipmentDetailsOpen(false)
                   }
                 >
                   Close

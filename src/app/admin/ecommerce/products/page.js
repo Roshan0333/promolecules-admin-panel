@@ -26,7 +26,15 @@ export default function ProductsPage() {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const res = await fetch(process.env.NEXT_PUBLIC_API_URL);
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}dashboard/all`,
+          {
+            headers:{
+              "Content-Type":"application/json",
+              "Authorization":`Bearer ${sessionStorage.getItem("pm_admin_token")}`
+            }
+          }
+        );
 
         if (!res.ok) {
           throw new Error(`Request failed with status ${res.status}`);
