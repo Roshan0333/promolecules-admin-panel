@@ -141,6 +141,7 @@ export default function ProductsPage() {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
+              Authorization:`Bearer ${sessionStorage.getItem("pm_admin_token")}`
             },
             body: JSON.stringify(bodyWithoutId),
           }
