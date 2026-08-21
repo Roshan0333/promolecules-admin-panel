@@ -93,7 +93,7 @@ export default function Banners (){
     <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-gray-900">Banners</h2>
+          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">Banners</h1>
           <p className="text-sm text-gray-500">
             Desktop and mobile creatives shown on the storefront.
           </p>
