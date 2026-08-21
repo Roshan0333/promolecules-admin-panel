@@ -104,6 +104,11 @@ const navItems = [
     href: "/admin/ecommerce/customers",
     icon: User
   },
+  {
+    label: "Banners",
+    href: "/admin/ecommerce/banners",
+    icon: Ticket
+  },
   // {
   //   label: "Product Specification",
   //   href: "/admin/product-specification",

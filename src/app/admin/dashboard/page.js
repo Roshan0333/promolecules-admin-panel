@@ -11,10 +11,6 @@ import StockReport from "@/components/dashboard/StockReport";
 import TopProducts from "@/components/dashboard/TopProducts";
 
 import {
-  revenueData,
-  customerSplitData,
-  stockReportData,
-  topProductsData,
   periodOptions,
 } from "@/data/dashboardData";
 
@@ -25,10 +21,11 @@ export default function DashboardPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const token = sessionStorage.getItem("pm_admin_token");
+
   useEffect(() => {
     async function fetchDashboard() {
       try {
-        const token = sessionStorage.getItem("pm_admin_token");
 
         if (!token) {
           throw new Error("Authentication token not found");
@@ -77,7 +74,7 @@ export default function DashboardPage() {
         }
       }
     )()
-  }, [])
+  }, []);
 
   if (loading) {
     return (
